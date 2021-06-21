@@ -11,6 +11,7 @@ from scipy import io as spio
 ##### for larger screens try PlotGUI ####
 
 from plotguiuniversal import *
+import matplotlib.pyplot as plt
 #from PlotGUI import *
 import pyqtgraph as pg
 import pandas.io.parsers
@@ -21,6 +22,13 @@ from PoreSizer import *
 from batchinfo import *
 import loadmat
 
+import PyQt5
+from PyQt5 import QtCore, QtGui
+if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+    PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+
+if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+    PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
 class GUIForm(QtGui.QMainWindow):
 
@@ -110,7 +118,7 @@ class GUIForm(QtGui.QMainWindow):
         self.p3.hideAxis('left')
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        self.logo=ndimage.imread(dir_path + os.sep + "pythionlogo.png")
+        self.logo=plt.imread(dir_path + os.sep + "pythionlogo.png")
         self.logo=np.rot90(self.logo,-1)
         self.logo = pg.ImageItem(self.logo)
         self.p3.addItem(self.logo)
@@ -200,6 +208,49 @@ class GUIForm(QtGui.QMainWindow):
 
             self.data = signal.filtfilt(b,a,self.data)
             
+        ### elements data files ###
+
+        if str(os.path.splitext(self.datafilename)[1])=='.edh':
+            self.headerfilename=self.datafilename
+            basefname=str(os.path.splitext(self.datafilename)[0])
+            i=0
+            self.datafilenames=[]
+            while (os.path.exists(basefname+f"_{i:03}.dat")):
+                self.datafilenames.append(basefname+f"_{i:03}.dat")
+                i+=1
+            if self.datafilenames:
+                for fname in self.datafilenames:
+                    print("\t"+fname)
+            with open(self.headerfilename,"r") as headerfile:
+                for line in headerfile:
+                    if line.startswith("EDH Version"):
+                        if line.split(":")[1].strip()!="2.0":
+                            print("EDH version not supported")
+                            return
+                    else:
+                        if line.startswith("Channels"):
+                            self.numberOfChannels=int(line.split(":")[1])
+                        if line.startswith("Sampling frequency"):
+                            samplerate=np.float64(int(line.split(":")[1].strip().split()[0])*1000)
+                        if line.startswith("Final Bandwidth"):
+                            filtrate=np.float64(samplerate/int(line.split("/")[1].split(" ")[0]))
+                        if line.startswith("Active Channels"):
+                            self.numberOfChannels=int(line.split(":")[1])
+            if self.datafilenames:
+                data=np.fromfile(self.datafilenames[0],dtype="float32")
+                data=data.reshape((self.numberOfChannels+1,-1),order="F")
+                self.data=data[0]*1e-9
+                
+            if samplerate < self.outputsamplerate:
+                self.outputsamplerate=samplerate
+                self.ui.outputsamplerateentry.setText(str((round(samplerate)/1000)))
+
+
+
+
+
+
+
 
         if str(os.path.splitext(self.datafilename)[1])=='.opt':
             self.data = np.fromfile(self.datafilename, dtype = np.dtype('>d'))
@@ -228,7 +279,8 @@ class GUIForm(QtGui.QMainWindow):
                     self.ramp_duration_ms = trigger_data[0].duration
                     self.eject_voltage = trigger_data[1].initial_value
                     self.eject_duration_ms = np.float64(trigger_data[1].duration)
-                except TypeError:
+                except TypeError as e:
+                    print (e)
                     pass
 ##################################################################
  
@@ -356,7 +408,7 @@ class GUIForm(QtGui.QMainWindow):
 
         try:
             ######## attempt to open dialog from most recent directory########
-            self.datafilename = QtWidgets.QFileDialog.getOpenFileName(self,'Open file',self.direc,("*.log;*.opt;*.npy;*.abf"))
+            self.datafilename = QtWidgets.QFileDialog.getOpenFileName(self,'Open file',self.direc,("*.log;*.opt;*.npy;*.abf;*.edh"))
             if self.datafilename != ('', ''):
                 self.datafilename = self.datafilename[0]
                 self.direc=os.path.dirname(self.datafilename)
