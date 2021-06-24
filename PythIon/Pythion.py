@@ -21,9 +21,11 @@ from CUSUMV2 import detect_cusum
 from PoreSizer import *
 from batchinfo import *
 import loadmat
+from peaktoolkit import *
 
 import PyQt5
 from PyQt5 import QtCore, QtGui
+
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
     PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
@@ -38,7 +40,9 @@ class GUIForm(QtGui.QMainWindow):
         QtGui.QMainWindow.__init__(self,master)
         self.ui = Ui_PythIon()
         self.ui.setupUi(self)
-                
+        
+
+
         ##########Linking buttons to main functions############
         self.ui.loadbutton.clicked.connect(self.getfile)
         self.ui.analyzebutton.clicked.connect(self.analyze)
@@ -59,7 +63,7 @@ class GUIForm(QtGui.QMainWindow):
         self.ui.fitbutton.clicked.connect(self.CUSUM)
         self.ui.Poresizeraction.triggered.connect(self.sizethepore)
         self.ui.actionBatch_Process.triggered.connect(self.batchinfodialog)        
-
+        self.ui.actionSpike_Analyzer.triggered.connect(self.spikedialog)
 
         ###### Setting up plotting elements and their respective options######
         self.ui.signalplot.setBackground('w')
@@ -141,6 +145,7 @@ class GUIForm(QtGui.QMainWindow):
         self.colors=[]
         self.sdf = pd.DataFrame(columns = ['fn','color','deli','frac',
             'dwell','dt','startpoints','endpoints'])
+
         
 
     def Load(self, loadandplot = True):
@@ -417,6 +422,37 @@ class GUIForm(QtGui.QMainWindow):
             #### if user cancels during file selection, exit loop#############
             pass
             
+    def analyze_spikes(self):
+        global startpoints,endpoints,mins
+        self.analyzetype = "spike"
+        self.w2.clear()
+        self.w3.clear()
+        self.w4.clear()
+        self.w5.clear()
+
+    def spikedialog(self):
+        self.spikedialogbox=peakToolkit(self)
+        self.spikedialogbox.show()
+        self.spikedialogbox.uipeak.peakAnalyzeBtn.clicked.connect(self.accept_spike_analyze)
+
+    def accept_spike_analyze(self):
+        self.sp={}  # parameters for peakfinder taken from peak analysis box
+        uipeak=self.spikedialogbox.uipeak
+        self.sp["rising"]= uipeak.peakTypeRising.isChecked()
+        self.sp["falling"]=uipeak.peakTypeFalling.isChecked()
+        self.sp["heightMin"]= None if not uipeak.peakLowerBound.isEnabled() else uipeak.peakLowerBound.value()*1e-9
+        self.sp["heightMax"]= None if not uipeak.peakUpperBound.isEnabled() else uipeak.peakUpperBound.value()*1e-9
+        self.sp["widthMin"]=None if not uipeak.widthMin.isEnabled() else uipeak.widthMin.value()*1e-6
+        self.sp["widthMax"]=None if not uipeak.widthMax.isEnabled() else uipeak.widthMax.value()*1e-6
+        self.sp["relHeight"]=None if not uipeak.relHeight.isEnabled() else uipeak.relHeight.value()
+        self.sp["prevalenceMin"]=None if not uipeak.prevalenceMin.isEnabled() else uipeak.prevalenceMin.value()*1e-9
+        self.sp["prevalenceMax"]=None if not uipeak.prevalenceMax.isEnabled() else uipeak.prevalenceMax.value()*1e-9
+        # print(self.sp)
+        self.analyze_spikes()
+
+
+
+
 
     def analyze(self):
         global startpoints,endpoints, mins

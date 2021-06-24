@@ -33,7 +33,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../../PythIon/pythionlogo.png</normaloff>../../PythIon/pythionlogo.png</iconset>
+    <normaloff>../pythionlogo.png</normaloff>../pythionlogo.png</iconset>
   </property>
   <property name="autoFillBackground">
    <bool>false</bool>
@@ -2264,7 +2264,7 @@ border-color: rgb(0, 0, 0);</string>
      <x>0</x>
      <y>0</y>
      <width>1254</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -2279,8 +2279,15 @@ border-color: rgb(0, 0, 0);</string>
      <string>Edit</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionSpike_Analyzer"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
+   <addaction name="menuTools"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionInvert">
@@ -2301,6 +2308,11 @@ border-color: rgb(0, 0, 0);</string>
   <action name="actionBatch_Process">
    <property name="text">
     <string>Batch Process</string>
+   </property>
+  </action>
+  <action name="actionSpike_Analyzer">
+   <property name="text">
+    <string>Spike Analyzer</string>
    </property>
   </action>
  </widget>
