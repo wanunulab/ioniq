@@ -217,6 +217,7 @@ class GUIForm(QtGui.QMainWindow):
 
         if str(os.path.splitext(self.datafilename)[1])=='.edh':
             self.headerfilename=self.datafilename
+
             basefname=str(os.path.splitext(self.datafilename)[0])
             i=0
             self.datafilenames=[]
@@ -243,6 +244,7 @@ class GUIForm(QtGui.QMainWindow):
                             self.numberOfChannels=int(line.split(":")[1])
             if self.datafilenames:
                 data=np.fromfile(self.datafilenames[0],dtype="float32")
+                self.matfilename=self.datafilenames[0]
                 data=data.reshape((self.numberOfChannels+1,-1),order="F")
                 self.data=data[0]*1e-9
                 
@@ -424,11 +426,81 @@ class GUIForm(QtGui.QMainWindow):
             
     def analyze_spikes(self):
         global startpoints,endpoints,mins
+        if self.data is None:
+            print('no data to analyze')
+            return
         self.analyzetype = "spike"
+        
         self.w2.clear()
         self.w3.clear()
         self.w4.clear()
         self.w5.clear()
+        try:
+            if self.sp["rising"]==True:
+                peaks,props=signal.find_peaks(self.data,
+                    height=(self.sp["heightMin"],self.sp["heightMax"]),
+                    width=(self.sp["widthMin"],self.sp["widthMax"]),
+                    prominence=(self.sp["prominenceMin"],self.sp["prominenceMax"]),
+                    distance=self.sp["distanceMin"],
+                    rel_height=self.sp["relHeight"],
+                    wlen=self.sp["widthMax"]*5
+                    )
+            elif self.sp["falling"]==True:
+                peaks,props=signal.find_peaks(-self.data,
+                    height=(-self.sp["heightMax"],-self.sp["heightMin"]),
+                    width=(self.sp["widthMin"],self.sp["widthMax"]),
+                    prominence=(self.sp["prominenceMin"],self.sp["prominenceMax"]),
+                    distance=self.sp["distanceMin"],
+                    rel_height=self.sp["relHeight"]
+                    )
+            print("# peaks found:", peaks.shape[0])
+            print(peaks,props)
+        except Exception as e:
+            print("finding spikes failed...")
+            print("error message:",e)
+            return
+
+        self.numberofevents=peaks.shape[0]
+        self.peakprops=props
+        self.deli=props["prominences"]
+        self.dwell=props["widths"]*1e6/self.outputsamplerate
+        startpoints=self.startpoints=props["left_bases"]
+        endpoints=self.endpoints=props["right_bases"]
+        self.left_ips=props["left_ips"]
+        self.right_ips=props["right_ips"]
+        self.frac = self.deli/(self.data[peaks]-self.deli)
+        self.peaks=peaks
+        self.dt = np.array(0)
+        self.dt=np.append(self.dt,np.diff(peaks)/self.outputsamplerate)
+
+        self.p1.plot(self.t[peaks], self.data[peaks],pen=None, symbol='o',symbolBrush='g',symbolSize=10)
+        self.ui.eventcounterlabel.setText('Events:'+str(self.numberofevents))
+        self.ui.meandelilabel.setText('Deli:'+str(round(np.mean(self.deli*10**9),2))+' nA')
+        self.ui.meandwelllabel.setText('Dwell:'+str(round(np.median(self.dwell),2))+ u' μs')
+        self.ui.meandtlabel.setText('Rate:'+str(round(self.numberofevents/self.t[-1],1))+' events/s')
+        self.noise = (10**10)*np.array([np.std(self.data[x:self.endpoints[i]])for i,x in enumerate(self.startpoints)])
+        
+        try:
+            self.p2.data = self.p2.data[np.where(np.array(self.sdf.fn) != self.matfilename)]
+        except:
+            IndexError
+        self.sdf = self.sdf[self.sdf.fn != self.matfilename]
+
+        fn = pd.Series([self.matfilename,] * self.numberofevents)
+        color = pd.Series([pg.colorTuple(self.cb.color()),] * self.numberofevents)
+
+        self.sdf = self.sdf.append(pd.DataFrame({'fn':fn,'color':color,'deli':self.deli,
+                                    'frac':self.frac,'dwell':self.dwell,
+                                    'dt':self.dt,'stdev':self.noise,'startpoints':self.startpoints,
+                                    'endpoints':self.endpoints}), ignore_index=True)
+        self.inspectevent(0)
+
+
+
+
+
+
+
 
     def spikedialog(self):
         self.spikedialogbox=peakToolkit(self)
@@ -442,12 +514,14 @@ class GUIForm(QtGui.QMainWindow):
         self.sp["falling"]=uipeak.peakTypeFalling.isChecked()
         self.sp["heightMin"]= None if not uipeak.peakLowerBound.isEnabled() else uipeak.peakLowerBound.value()*1e-9
         self.sp["heightMax"]= None if not uipeak.peakUpperBound.isEnabled() else uipeak.peakUpperBound.value()*1e-9
-        self.sp["widthMin"]=None if not uipeak.widthMin.isEnabled() else uipeak.widthMin.value()*1e-6
-        self.sp["widthMax"]=None if not uipeak.widthMax.isEnabled() else uipeak.widthMax.value()*1e-6
+        self.sp["widthMin"]=None if not uipeak.widthMin.isEnabled() else uipeak.widthMin.value()*1e-6*self.outputsamplerate
+        self.sp["widthMax"]=None if not uipeak.widthMax.isEnabled() else uipeak.widthMax.value()*1e-6*self.outputsamplerate
         self.sp["relHeight"]=None if not uipeak.relHeight.isEnabled() else uipeak.relHeight.value()
-        self.sp["prevalenceMin"]=None if not uipeak.prevalenceMin.isEnabled() else uipeak.prevalenceMin.value()*1e-9
-        self.sp["prevalenceMax"]=None if not uipeak.prevalenceMax.isEnabled() else uipeak.prevalenceMax.value()*1e-9
-        # print(self.sp)
+        self.sp["prominenceMin"]=None if not uipeak.prominenceMin.isEnabled() else uipeak.prominenceMin.value()*1e-9
+        self.sp["prominenceMax"]=None if not uipeak.prominenceMax.isEnabled() else uipeak.prominenceMax.value()*1e-9
+        self.sp["distanceMin"]=None if not uipeak.distanceMin.isEnabled() else uipeak.distanceMin.value()*1e-6*self.outputsamplerate
+        print(self.sp)
+        print(self.outputsamplerate)
         self.analyze_spikes()
 
 
@@ -664,9 +738,22 @@ class GUIForm(QtGui.QMainWindow):
                      self.data[int(startpoints[eventnumber]-eventbuffer):int(endpoints[eventnumber]+eventbuffer)], pen='b')
 
         #plot event fit
-        self.p3.plot(self.t[int(startpoints[eventnumber]-eventbuffer):int(endpoints[eventnumber]+eventbuffer)],np.concatenate((
-                     np.repeat(np.array([self.baseline]),eventbuffer),np.repeat(np.array([self.baseline-self.deli[eventnumber
-                     ]]),endpoints[eventnumber]-startpoints[eventnumber]),np.repeat(np.array([self.baseline]),eventbuffer)),0),pen=pg.mkPen(color=(173,27,183),width=3))
+        if self.analyzetype!="spike":
+            self.p3.plot(self.t[int(startpoints[eventnumber]-eventbuffer):int(endpoints[eventnumber]+eventbuffer)],np.concatenate((
+                         np.repeat(np.array([self.baseline]),eventbuffer),np.repeat(np.array([self.baseline-self.deli[eventnumber
+                         ]]),endpoints[eventnumber]-startpoints[eventnumber]),np.repeat(np.array([self.baseline]),eventbuffer)),0),pen=pg.mkPen(color=(173,27,183),width=3))
+        else:
+            #vertical line for height
+            self.p3.plot([self.t[int(self.peaks[eventnumber])],]*2 , 
+                [self.data[self.peaks[eventnumber]]-self.deli[eventnumber] ,self.data[self.peaks[eventnumber]]],
+                pen=pg.mkPen(color=(240,0,0),width=3))
+            #horizontal line for width
+            self.p3.plot([self.t[int(self.left_ips[eventnumber])],self.t[int(self.right_ips[eventnumber])]],
+                [self.peakprops["width_heights"][eventnumber],]*2,
+                pen=pg.mkPen(color=(0,200,30),width=3))
+            self.p3.plot([self.t[int(self.startpoints[eventnumber])],self.t[int(self.endpoints[eventnumber])]],
+                [self.data[self.peaks[eventnumber]]-self.deli[eventnumber,]]*2,
+                pen=pg.mkPen(color=(190,50,190),width=3))
 
         self.p3.autoRange()
         #Mark event that is being viewed on scatter plot

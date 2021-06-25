@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>239</width>
-    <height>311</height>
+    <height>294</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -170,9 +170,9 @@
     </widget>
    </item>
    <item row="7" column="0">
-    <widget class="QCheckBox" name="prevalenceMinCheck">
+    <widget class="QCheckBox" name="prominenceMinCheck">
      <property name="text">
-      <string>Pervalence min (nA)</string>
+      <string>Prominence min (nA)</string>
      </property>
      <property name="checked">
       <bool>true</bool>
@@ -180,12 +180,16 @@
     </widget>
    </item>
    <item row="7" column="1">
-    <widget class="QDoubleSpinBox" name="prevalenceMin"/>
+    <widget class="QDoubleSpinBox" name="prominenceMin">
+     <property name="maximum">
+      <double>500.000000000000000</double>
+     </property>
+    </widget>
    </item>
    <item row="8" column="0">
-    <widget class="QCheckBox" name="prevalenceMaxCheck">
+    <widget class="QCheckBox" name="prominenceMaxCheck">
      <property name="text">
-      <string>Prevalence max (nA)</string>
+      <string>Prominence max (nA)</string>
      </property>
      <property name="checked">
       <bool>true</bool>
@@ -193,13 +197,45 @@
     </widget>
    </item>
    <item row="8" column="1">
-    <widget class="QDoubleSpinBox" name="prevalenceMax">
+    <widget class="QDoubleSpinBox" name="prominenceMax">
+     <property name="maximum">
+      <double>500.000000000000000</double>
+     </property>
      <property name="value">
       <double>5.000000000000000</double>
      </property>
     </widget>
    </item>
-   <item row="9" column="0" colspan="2">
+   <item row="9" column="0">
+    <widget class="QCheckBox" name="distanceMinCheck">
+     <property name="text">
+      <string>Distance min (ms)</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="1">
+    <widget class="QDoubleSpinBox" name="distanceMin">
+     <property name="suffix">
+      <string/>
+     </property>
+     <property name="decimals">
+      <number>3</number>
+     </property>
+     <property name="maximum">
+      <double>10000000.000000000000000</double>
+     </property>
+     <property name="value">
+      <double>1.000000000000000</double>
+     </property>
+    </widget>
+   </item>
+   <item row="10" column="0" colspan="2">
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <widget class="QPushButton" name="peakAnalyzeBtn">
@@ -241,12 +277,11 @@
   <tabstop>widthMax</tabstop>
   <tabstop>relHeightCheck</tabstop>
   <tabstop>relHeight</tabstop>
-  <tabstop>prevalenceMinCheck</tabstop>
-  <tabstop>prevalenceMin</tabstop>
-  <tabstop>prevalenceMaxCheck</tabstop>
-  <tabstop>prevalenceMax</tabstop>
+  <tabstop>prominenceMinCheck</tabstop>
+  <tabstop>prominenceMin</tabstop>
+  <tabstop>prominenceMaxCheck</tabstop>
+  <tabstop>prominenceMax</tabstop>
   <tabstop>peakAnalyzeBtn</tabstop>
-  <tabstop>peakCancelBtn</tabstop>
  </tabstops>
  <resources/>
  <connections>
@@ -331,9 +366,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>prevalenceMinCheck</sender>
+   <sender>prominenceMinCheck</sender>
    <signal>toggled(bool)</signal>
-   <receiver>prevalenceMin</receiver>
+   <receiver>prominenceMin</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -347,9 +382,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>prevalenceMaxCheck</sender>
+   <sender>prominenceMaxCheck</sender>
    <signal>toggled(bool)</signal>
-   <receiver>prevalenceMax</receiver>
+   <receiver>prominenceMax</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -359,6 +394,22 @@
     <hint type="destinationlabel">
      <x>154</x>
      <y>225</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>distanceMinCheck</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>distanceMin</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>84</x>
+     <y>242</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>152</x>
+     <y>245</y>
     </hint>
    </hints>
   </connection>

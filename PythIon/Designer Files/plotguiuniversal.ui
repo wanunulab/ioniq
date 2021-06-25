@@ -2283,7 +2283,19 @@ border-color: rgb(0, 0, 0);</string>
     <property name="title">
      <string>Tools</string>
     </property>
+    <widget class="QMenu" name="menuPythion_Tests">
+     <property name="title">
+      <string>Pythion Tests</string>
+     </property>
+     <addaction name="actionSpike_Analysis_Test_1"/>
+     <addaction name="actionSpike_Analysis_Test_2"/>
+     <addaction name="separator"/>
+     <addaction name="actionStatSplit_Analysis_Test_1"/>
+    </widget>
     <addaction name="actionSpike_Analyzer"/>
+    <addaction name="actionFilter_Kit"/>
+    <addaction name="separator"/>
+    <addaction name="menuPythion_Tests"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -2313,6 +2325,29 @@ border-color: rgb(0, 0, 0);</string>
   <action name="actionSpike_Analyzer">
    <property name="text">
     <string>Spike Analyzer</string>
+   </property>
+  </action>
+  <action name="actionFilter_Kit">
+   <property name="text">
+    <string>Filter Kit</string>
+   </property>
+  </action>
+  <action name="actionSpike_Analysis_Test_1">
+   <property name="text">
+    <string>Spike Analysis Test 1</string>
+   </property>
+  </action>
+  <action name="actionSpike_Analysis_Test_2">
+   <property name="text">
+    <string>Spike Analysis Test 2</string>
+   </property>
+  </action>
+  <action name="actionStatSplit_Analysis_Test_1">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>StatSplit Analysis Test 1</string>
    </property>
   </action>
  </widget>
