@@ -22,6 +22,7 @@ from PoreSizer import *
 from batchinfo import *
 import loadmat
 from peaktoolkit import *
+from filterkit import *
 
 import PyQt5
 from PyQt5 import QtCore, QtGui
@@ -64,6 +65,8 @@ class GUIForm(QtGui.QMainWindow):
         self.ui.Poresizeraction.triggered.connect(self.sizethepore)
         self.ui.actionBatch_Process.triggered.connect(self.batchinfodialog)        
         self.ui.actionSpike_Analyzer.triggered.connect(self.spikedialog)
+        self.ui.actionSpike_Analysis_Test_1.triggered.connect(self.run_spike_test1)
+        self.ui.actionFilter_Kit.triggered.connect(self.filterdialog)
 
         ###### Setting up plotting elements and their respective options######
         self.ui.signalplot.setBackground('w')
@@ -243,10 +246,13 @@ class GUIForm(QtGui.QMainWindow):
                         if line.startswith("Active Channels"):
                             self.numberOfChannels=int(line.split(":")[1])
             if self.datafilenames:
-                data=np.fromfile(self.datafilenames[0],dtype="float32")
+                self.data=[]
                 self.matfilename=self.datafilenames[0]
-                data=data.reshape((self.numberOfChannels+1,-1),order="F")
-                self.data=data[0]*1e-9
+                for datafilename in self.datafilenames:
+                    data=np.fromfile(datafilename,dtype="float32")
+                
+                    data=data.reshape((self.numberOfChannels+1,-1),order="F")
+                    self.data=np.concatenate((self.data,data[0]*1e-9),axis=None)
                 
             if samplerate < self.outputsamplerate:
                 self.outputsamplerate=samplerate
@@ -423,7 +429,26 @@ class GUIForm(QtGui.QMainWindow):
         except IOError:
             #### if user cancels during file selection, exit loop#############
             pass
-            
+
+    def run_spike_test1(self):
+        self.datafilename="F:/OneDrive - Northeastern University/Wanunu Lab/ViralNPQ/Data/EDR/ViralNPQ/cellexps/Q5_200_spike_on_Ace2_01/Q5_200_spike_on_Ace2.edh"
+        self.direc=os.path.dirname(self.datafilename)
+        self.Load()
+        self.sp={}  
+        self.sp["rising"]= True
+        self.sp["falling"]= False
+        self.sp["heightMin"]= -21*1e-9
+        self.sp["heightMax"]= -10*1e-9
+        self.sp["widthMin"]=20*1e-6*self.outputsamplerate
+        self.sp["widthMax"]=250*1e-6*self.outputsamplerate
+        self.sp["relHeight"]=0.5
+        self.sp["prominenceMin"]=3.2*1e-9
+        self.sp["prominenceMax"]=9*1e-9
+        self.sp["distanceMin"]=1*1e-3*self.outputsamplerate
+        self.analyze_spikes()
+        
+
+        
     def analyze_spikes(self):
         global startpoints,endpoints,mins
         if self.data is None:
@@ -468,7 +493,7 @@ class GUIForm(QtGui.QMainWindow):
         endpoints=self.endpoints=props["right_bases"]
         self.left_ips=props["left_ips"]
         self.right_ips=props["right_ips"]
-        self.frac = self.deli/(self.data[peaks]-self.deli)
+        self.frac = self.deli/(np.abs(self.data[peaks])+self.deli)
         self.peaks=peaks
         self.dt = np.array(0)
         self.dt=np.append(self.dt,np.diff(peaks)/self.outputsamplerate)
@@ -493,6 +518,18 @@ class GUIForm(QtGui.QMainWindow):
                                     'frac':self.frac,'dwell':self.dwell,
                                     'dt':self.dt,'stdev':self.noise,'startpoints':self.startpoints,
                                     'endpoints':self.endpoints}), ignore_index=True)
+        
+        self.p2.addPoints(x=np.log10(self.dwell),y=self.frac,
+        symbol='o', brush=(self.cb.color()), pen = None, size = 10)
+
+
+        self.w1.addItem(self.p2)
+        self.w1.setLogMode(x=True,y=False)
+        self.p1.autoRange()
+        self.w1.autoRange()
+        self.ui.scatterplot.update()
+        self.w1.setRange(yRange=[0,1])
+
         self.inspectevent(0)
 
 
@@ -519,13 +556,16 @@ class GUIForm(QtGui.QMainWindow):
         self.sp["relHeight"]=None if not uipeak.relHeight.isEnabled() else uipeak.relHeight.value()
         self.sp["prominenceMin"]=None if not uipeak.prominenceMin.isEnabled() else uipeak.prominenceMin.value()*1e-9
         self.sp["prominenceMax"]=None if not uipeak.prominenceMax.isEnabled() else uipeak.prominenceMax.value()*1e-9
-        self.sp["distanceMin"]=None if not uipeak.distanceMin.isEnabled() else uipeak.distanceMin.value()*1e-6*self.outputsamplerate
+        self.sp["distanceMin"]=None if not uipeak.distanceMin.isEnabled() else uipeak.distanceMin.value()*1e-3*self.outputsamplerate
         print(self.sp)
         print(self.outputsamplerate)
         self.analyze_spikes()
 
 
 
+    def filterdialog(self):
+        self.filterdialogbox=FilterKit(self)
+        self.filterdialogbox.show()
 
 
     def analyze(self):
@@ -767,8 +807,9 @@ class GUIForm(QtGui.QMainWindow):
 
 
         #Mark event start and end points
-        self.p3.plot([self.t[int(startpoints[eventnumber])], self.t[int(startpoints[eventnumber])]],[self.data[int(startpoints[eventnumber])], self.data[int(startpoints[eventnumber])]],pen=None, symbol='o',symbolBrush='g',symbolSize=12)
-        self.p3.plot([self.t[int(endpoints[eventnumber])], self.t[int(endpoints[eventnumber])]],[self.data[int(endpoints[eventnumber])], self.data[int(endpoints[eventnumber])]],pen=None, symbol='o',symbolBrush='r',symbolSize=12)
+        if self.analyzetype!="spike":
+            self.p3.plot([self.t[int(startpoints[eventnumber])], self.t[int(startpoints[eventnumber])]],[self.data[int(startpoints[eventnumber])], self.data[int(startpoints[eventnumber])]],pen=None, symbol='o',symbolBrush='g',symbolSize=12)
+            self.p3.plot([self.t[int(endpoints[eventnumber])], self.t[int(endpoints[eventnumber])]],[self.data[int(endpoints[eventnumber])], self.data[int(endpoints[eventnumber])]],pen=None, symbol='o',symbolBrush='r',symbolSize=12)
 
         self.ui.eventinfolabel.setText('Dwell Time=' + str(round(self.dwell[eventnumber],2))+ u' μs,   Deli='+str(round(self.deli[eventnumber]*10**9,2)) +' nA')
 
