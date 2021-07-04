@@ -564,8 +564,24 @@ class GUIForm(QtGui.QMainWindow):
 
 
     def filterdialog(self):
-        self.filterdialogbox=FilterKit(self)
+        self.filterdialogbox=FilterKit(self.outputsamplerate,self)
         self.filterdialogbox.show()
+        self.filterdialogbox.uifilt.filterApplyBtn.clicked.connect(self.apply_filter)
+        self.previousData=None
+
+    def apply_filter(self):
+        filteredData=self.filterdialogbox.apply_to(self.data)
+        if filteredData is not None:
+            self.previousData=self.data
+            self.data=filteredData
+            self.p1.clear()
+            self.p1.plot(self.t,self.data,pen='b')
+    def undo_filter(self):
+        if self.previousData:
+            self.data=self.previousData
+            self.p1.clear()
+            self.p1.plot(self.t,self.data,pen='b')
+
 
 
     def analyze(self):
