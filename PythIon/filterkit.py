@@ -136,42 +136,42 @@ class FilterKit(QtWidgets.QWidget):
                 group_delay=-np.diff(np.unwrap(np.angle(h))/(2*np.pi))/np.diff(w)
                 h=h/np.max(np.abs(h))
                 
-                filterlabel="$\sigma = "+f"{self.sigma*1e6} us$"
+                filterlabel="$\sigma = "+f"{self.sigma*1e6:.1f} us$"
                 wgd=w[1:]
-            if True:
-                ax1=plt.subplot(311)
-                plt.plot(w,np.abs(h),label=filterlabel)
-                plt.legend(fontsize='small')
-                plt.semilogx()
-                plt.xlabel("Frequency (Hz)")
-                plt.ylabel("Magnitude")
-                plt.grid(b=True,which='both', axis='both')
-                print(w,h)
-                plt.draw()
-                
-                
-                ax2=plt.subplot(312,sharex=ax1)
-                plt.plot(w,np.unwrap(np.angle(h))*360/(2*np.pi),label=filterlabel)
-                #w[1:], -np.diff(np.unwrap(np.angle(h)))/np.diff(w)
-                #plt.legend()
-                plt.semilogx()
-                plt.xlabel("Frequency (Hz)")
-                plt.ylabel("unwrapped phase (deg)")
-                plt.grid(b=True,which='both', axis='both')
+            
+            ax1=plt.subplot(311)
+            plt.plot(w,np.abs(h),label=filterlabel)
+            plt.legend(fontsize='small')
+            plt.semilogx()
+            plt.xlabel("Frequency (Hz)")
+            plt.ylabel("Magnitude")
+            plt.grid(b=True,which='both', axis='both')
+            print(w,h)
+            plt.draw()
+            
+            
+            ax2=plt.subplot(312,sharex=ax1)
+            plt.plot(w,np.unwrap(np.angle(h))*360/(2*np.pi),label=filterlabel)
+            #w[1:], -np.diff(np.unwrap(np.angle(h)))/np.diff(w)
+            #plt.legend()
+            plt.semilogx()
+            plt.xlabel("Frequency (Hz)")
+            plt.ylabel("unwrapped phase (deg)")
+            plt.grid(b=True,which='both', axis='both')
 
-                plt.draw()
+            plt.draw()
 
-                ax3=plt.subplot(313,sharex=ax1)
+            ax3=plt.subplot(313,sharex=ax1)
 
 
-                plt.plot(wgd,group_delay,label=filterlabel)
-                # w[1:], -np.diff(np.unwrap(np.angle(h)))/np.diff(w)
-                #plt.legend()
-                plt.semilogx()
-                plt.xlabel("Frequency (Hz)")
-                plt.ylabel("group delay")
-                plt.grid(b=True,which='both', axis='both')
-                self.previewPlot.show()
+            plt.plot(wgd,group_delay,label=filterlabel)
+            # w[1:], -np.diff(np.unwrap(np.angle(h)))/np.diff(w)
+            #plt.legend()
+            plt.semilogx()
+            plt.xlabel("Frequency (Hz)")
+            plt.ylabel("group delay")
+            plt.grid(b=True,which='both', axis='both')
+            self.previewPlot.show()
 
 
 

@@ -149,6 +149,7 @@ class GUIForm(QtGui.QMainWindow):
         self.sdf = pd.DataFrame(columns = ['fn','color','deli','frac',
             'dwell','dt','startpoints','endpoints'])
 
+
         
 
     def Load(self, loadandplot = True):
@@ -478,6 +479,7 @@ class GUIForm(QtGui.QMainWindow):
                     distance=self.sp["distanceMin"],
                     rel_height=self.sp["relHeight"]
                     )
+            peaks,props=self.readjust_spike_baseline(peaks,props,100)
             print("# peaks found:", peaks.shape[0])
             print(peaks,props)
         except Exception as e:
@@ -525,7 +527,7 @@ class GUIForm(QtGui.QMainWindow):
 
         self.w1.addItem(self.p2)
         self.w1.setLogMode(x=True,y=False)
-        self.p1.autoRange()
+        # self.p1.autoRange()
         self.w1.autoRange()
         self.ui.scatterplot.update()
         self.w1.setRange(yRange=[0,1])
@@ -534,7 +536,16 @@ class GUIForm(QtGui.QMainWindow):
 
 
 
-
+    def readjust_spike_baseline(self,peaks,props,meanlen:int):
+        leftmatches= np.argwhere(self.data[peaks]-props["prominences"]== self.data[props["left_bases"]])
+        rightmatches=np.argwhere(self.data[peaks]-props["prominences"]==self.data[props["right_bases"]])
+        
+        
+        leftmatches=leftmatches.ravel()
+        rightmatches=rightmatches.ravel()
+        props["prominences"][leftmatches.ravel()]=self.data[peaks[leftmatches]]  -[np.mean(self.data[props["left_bases"][x]-meanlen:props["left_bases"][x]]) for x in leftmatches]
+        props["prominences"][rightmatches.ravel()]=self.data[peaks[rightmatches]]-[np.mean(self.data[props["right_bases"][x]:props["right_bases"][x]+meanlen]) for x in rightmatches]
+        return peaks,props
 
 
 
@@ -799,6 +810,8 @@ class GUIForm(QtGui.QMainWindow):
                          np.repeat(np.array([self.baseline]),eventbuffer),np.repeat(np.array([self.baseline-self.deli[eventnumber
                          ]]),endpoints[eventnumber]-startpoints[eventnumber]),np.repeat(np.array([self.baseline]),eventbuffer)),0),pen=pg.mkPen(color=(173,27,183),width=3))
         else:
+            #plot spike events 
+
             #vertical line for height
             self.p3.plot([self.t[int(self.peaks[eventnumber])],]*2 , 
                 [self.data[self.peaks[eventnumber]]-self.deli[eventnumber] ,self.data[self.peaks[eventnumber]]],
@@ -807,6 +820,7 @@ class GUIForm(QtGui.QMainWindow):
             self.p3.plot([self.t[int(self.left_ips[eventnumber])],self.t[int(self.right_ips[eventnumber])]],
                 [self.peakprops["width_heights"][eventnumber],]*2,
                 pen=pg.mkPen(color=(0,200,30),width=3))
+            #horizontal line for baseline
             self.p3.plot([self.t[int(self.startpoints[eventnumber])],self.t[int(self.endpoints[eventnumber])]],
                 [self.data[self.peaks[eventnumber]]-self.deli[eventnumber,]]*2,
                 pen=pg.mkPen(color=(190,50,190),width=3))
