@@ -23,7 +23,7 @@ from batchinfo import *
 import loadmat
 from peaktoolkit import *
 from filterkit import *
-
+import pyabf
 import PyQt5
 from PyQt5 import QtCore, QtGui
 
@@ -224,9 +224,15 @@ class GUIForm(QtGui.QMainWindow):
 
             basefname=str(os.path.splitext(self.datafilename)[0])
             i=0
+            # max_limit = input("enter maximum number of files to import")
+            max_limit, ok = PyQt5.QtWidgets.QInputDialog.getInt(None,"File limit","Enter maximum number of files to import")
             self.datafilenames=[]
-            while (os.path.exists(basefname+f"_{i:03}.dat")):
+            while (os.path.exists(basefname+f"_{i:03}.dat") and i<max_limit):
                 self.datafilenames.append(basefname+f"_{i:03}.dat")
+                i+=1
+            i=0
+            while (os.path.exists(basefname+f"_CH001_{i:03}.abf") and i<max_limit):
+                self.datafilenames.append(basefname+f"_CH001_{i:03}.abf")
                 i+=1
             if self.datafilenames:
                 for fname in self.datafilenames:
@@ -250,9 +256,12 @@ class GUIForm(QtGui.QMainWindow):
                 self.data=[]
                 self.matfilename=self.datafilenames[0]
                 for datafilename in self.datafilenames:
-                    data=np.fromfile(datafilename,dtype="float32")
-                
-                    data=data.reshape((self.numberOfChannels+1,-1),order="F")
+                    if datafilename[-4:]=='.abf':
+                        data=pyabf.ABF(datafilename)
+                        data=data.data
+                    else:
+                        data=np.fromfile(datafilename,dtype="float32")
+                        data=data.reshape((self.numberOfChannels+1,-1),order="F")
                     self.data=np.concatenate((self.data,data[0]*1e-9),axis=None)
                 
             if samplerate < self.outputsamplerate:
@@ -531,8 +540,43 @@ class GUIForm(QtGui.QMainWindow):
         self.w1.autoRange()
         self.ui.scatterplot.update()
         self.w1.setRange(yRange=[0,1])
+        colors=self.sdf.color.unique()
+        for i,x in enumerate(colors):
+
+            fracy, fracx = np.histogram(self.sdf.frac[self.sdf.color == x], bins=np.linspace(0, 1, int(self.ui.fracbins.text())))
+            deliy, delix = np.histogram(self.sdf.deli[self.sdf.color == x], bins=np.linspace(float(self.ui.delirange0.text())*10**-9, float(self.ui.delirange1.text())*10**-9, int(self.ui.delibins.text())))
+            dwelly, dwellx = np.histogram(np.log10(self.sdf.dwell[self.sdf.color == x]), bins=np.linspace(float(self.ui.dwellrange0.text()), float(self.ui.dwellrange1.text()), int(self.ui.dwellbins.text())))
+            dty, dtx = np.histogram(self.sdf.dt[self.sdf.color == x], bins=np.linspace(float(self.ui.dtrange0.text()), float(self.ui.dtrange1.text()), int(self.ui.dtbins.text())))
+
+        
+#            hist = pg.PlotCurveItem(fracy, fracx , stepMode = True, fillLevel=0, brush = x, pen = 'k')
+#            self.w2.addItem(hist)
+
+            hist = pg.BarGraphItem(height = fracy, x0 = fracx[:-1], x1 = fracx[1:], brush = x)
+            self.w2.addItem(hist)
+
+#            hist = pg.PlotCurveItem(delix, deliy , stepMode = True, fillLevel=0, brush = x, pen = 'k')
+#            self.w3.addItem(hist)
+
+            hist = pg.BarGraphItem(height = deliy, x0 = delix[:-1], x1 = delix[1:], brush = x)
+            self.w3.addItem(hist)
+#            self.w3.autoRange()
+            self.w3.setRange(xRange = [float(self.ui.delirange0.text())*10**-9, float(self.ui.delirange1.text())*10**-9])
+
+#            hist = pg.PlotCurveItem(dwellx, dwelly , stepMode = True, fillLevel=0, brush = x, pen = 'k')
+#            self.w4.addItem(hist)
+
+            hist = pg.BarGraphItem(height = dwelly, x0 = dwellx[:-1], x1 = dwellx[1:], brush = x)
+            self.w4.addItem(hist)
+
+#            hist = pg.PlotCurveItem(dtx, dty , stepMode = True, fillLevel=0, brush = x, pen = 'k')
+#            self.w5.addItem(hist)
+
+            hist = pg.BarGraphItem(height = dty, x0 = dtx[:-1], x1 = dtx[1:], brush = x)
+            self.w5.addItem(hist)
 
         self.inspectevent(0)
+        self.save()
 
 
 
@@ -583,7 +627,7 @@ class GUIForm(QtGui.QMainWindow):
     def apply_filter(self):
         filteredData=self.filterdialogbox.apply_to(self.data)
         if filteredData is not None:
-            self.previousData=self.data
+            # self.previousData=self.data
             self.data=filteredData
             self.p1.clear()
             self.p1.plot(self.t,self.data,pen='b')
