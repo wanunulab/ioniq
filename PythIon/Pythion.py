@@ -254,6 +254,7 @@ class GUIForm(QtGui.QMainWindow):
                             self.numberOfChannels=int(line.split(":")[1])
             if self.datafilenames:
                 self.data=[]
+                self.voltage=[]
                 self.matfilename=self.datafilenames[0]
                 for datafilename in self.datafilenames:
                     if datafilename[-4:]=='.abf':
@@ -263,6 +264,9 @@ class GUIForm(QtGui.QMainWindow):
                         data=np.fromfile(datafilename,dtype="float32")
                         data=data.reshape((self.numberOfChannels+1,-1),order="F")
                     self.data=np.concatenate((self.data,data[0]*1e-9),axis=None)
+                    self.voltage=np.concatenate((self.voltage,data[self.numberOfChannels]),axis=None)
+                    print('voltage channel shape ',self.voltage.shape)
+                    print('current channel shape ',self.data.shape)
                 
             if samplerate < self.outputsamplerate:
                 self.outputsamplerate=samplerate
@@ -822,7 +826,16 @@ class GUIForm(QtGui.QMainWindow):
         self.savetarget()
 
     def save(self):
-         np.savetxt(self.matfilename+'DB.txt',np.column_stack((self.deli,self.frac,self.dwell,self.dt,self.noise)),delimiter='\t',
+        if self.analyzetype == "spike":
+            import datetime
+            timestamp=datetime.datetime.now().isoformat('_','seconds').replace(':','.')
+            self.spikevoltage= self.voltage[self.peaks]
+
+            np.savetxt(self.matfilename+'DB_'+timestamp+'.txt',np.column_stack((self.deli,self.frac,self.dwell,self.dt,self.noise,self.spikevoltage)),delimiter='\t',
+                    header= "deli" + '\t' + "frac" + '\t' +"dwell" + '\t'+"dt"+ '\t' + 'stdev' + '\t' + 'voltage')
+            return
+
+        np.savetxt(self.matfilename+'DB.txt',np.column_stack((self.deli,self.frac,self.dwell,self.dt,self.noise)),delimiter='\t',
                     header= "deli" + '\t' + "frac" + '\t' +"dwell" + '\t'+"dt"+ '\t' + 'stdev')
 
     def inspectevent(self, clicked = []):
@@ -985,7 +998,13 @@ class GUIForm(QtGui.QMainWindow):
             cutregion = self.lr.getRegion()
             self.p1.clear()
             self.data = np.delete(self.data,np.arange(np.int(cutregion[0]*self.outputsamplerate),np.int(cutregion[1]*self.outputsamplerate)))
-
+            try:
+                if self.voltage is not None:
+                    print(self.voltage.shape)
+                    self.voltage=np.delete(self.voltage,np.arange(np.int(cutregion[0]*self.outputsamplerate),np.int(cutregion[1]*self.outputsamplerate)))
+                    print('--> ', self.voltage.shape)
+            except:
+                pass
             self.t=np.arange(0,len(self.data))
             self.t=self.t/self.outputsamplerate
 
