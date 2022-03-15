@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'Designer Files\plotguiuniversal.ui'
+# Form implementation generated from reading ui file 'Designer Files/plotguiuniversal.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.3
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_PythIon(object):
     def setupUi(self, PythIon):
@@ -1122,7 +1120,7 @@ class Ui_PythIon(object):
         self.gridLayout_10.addWidget(self.groupBox3, 1, 0, 1, 3)
         PythIon.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(PythIon)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1254, 20))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1254, 47))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -1155,6 +1153,8 @@ class Ui_PythIon(object):
         self.actionStatSplit_Analysis_Test_1 = QtWidgets.QAction(PythIon)
         self.actionStatSplit_Analysis_Test_1.setEnabled(True)
         self.actionStatSplit_Analysis_Test_1.setObjectName("actionStatSplit_Analysis_Test_1")
+        self.actionNormalize_to_G = QtWidgets.QAction(PythIon)
+        self.actionNormalize_to_G.setObjectName("actionNormalize_to_G")
         self.menuFile.addAction(self.Poresizeraction)
         self.menuFile.addAction(self.actionBatch_Process)
         self.menuPythion_Tests.addAction(self.actionSpike_Analysis_Test_1)
@@ -1165,6 +1165,7 @@ class Ui_PythIon(object):
         self.menuTools.addAction(self.actionFilter_Kit)
         self.menuTools.addSeparator()
         self.menuTools.addAction(self.menuPythion_Tests.menuAction())
+        self.menuTools.addAction(self.actionNormalize_to_G)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
         self.menubar.addAction(self.menuTools.menuAction())
@@ -1247,4 +1248,6 @@ class Ui_PythIon(object):
         self.actionSpike_Analysis_Test_1.setText(_translate("PythIon", "Spike Analysis Test 1"))
         self.actionSpike_Analysis_Test_2.setText(_translate("PythIon", "Spike Analysis Test 2"))
         self.actionStatSplit_Analysis_Test_1.setText(_translate("PythIon", "StatSplit Analysis Test 1"))
+        self.actionNormalize_to_G.setText(_translate("PythIon", "Normalize to G"))
+
 from pyqtgraph import GraphicsLayoutWidget

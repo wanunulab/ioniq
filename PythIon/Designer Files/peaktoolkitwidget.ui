@@ -76,10 +76,10 @@
    <item row="2" column="1">
     <widget class="QDoubleSpinBox" name="peakLowerBound">
      <property name="minimum">
-      <double>-500.000000000000000</double>
+      <double>-50000.000000000000000</double>
      </property>
      <property name="maximum">
-      <double>500.000000000000000</double>
+      <double>50000.000000000000000</double>
      </property>
      <property name="value">
       <double>-10.000000000000000</double>
@@ -99,10 +99,10 @@
    <item row="3" column="1">
     <widget class="QDoubleSpinBox" name="peakUpperBound">
      <property name="minimum">
-      <double>-300.000000000000000</double>
+      <double>-50000.000000000000000</double>
      </property>
      <property name="maximum">
-      <double>300.000000000000000</double>
+      <double>50000.000000000000000</double>
      </property>
     </widget>
    </item>

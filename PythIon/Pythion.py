@@ -67,7 +67,7 @@ class GUIForm(QtGui.QMainWindow):
         self.ui.actionSpike_Analyzer.triggered.connect(self.spikedialog)
         self.ui.actionSpike_Analysis_Test_1.triggered.connect(self.run_spike_test1)
         self.ui.actionFilter_Kit.triggered.connect(self.filterdialog)
-
+        self.ui.actionNormalize_to_G.triggered.connect(self.normalize_to_g)
         ###### Setting up plotting elements and their respective options######
         self.ui.signalplot.setBackground('w')
         self.ui.scatterplot.setBackground('w')
@@ -148,6 +148,7 @@ class GUIForm(QtGui.QMainWindow):
         self.colors=[]
         self.sdf = pd.DataFrame(columns = ['fn','color','deli','frac',
             'dwell','dt','startpoints','endpoints'])
+        self.is_normalized_to_G=False
 
 
         
@@ -225,18 +226,35 @@ class GUIForm(QtGui.QMainWindow):
             basefname=str(os.path.splitext(self.datafilename)[0])
             i=0
             # max_limit = input("enter maximum number of files to import")
-            max_limit, ok = PyQt5.QtWidgets.QInputDialog.getInt(None,"File limit","Enter maximum number of files to import")
-            self.datafilenames=[]
-            while (os.path.exists(basefname+f"_{i:03}.dat") and i<max_limit):
-                self.datafilenames.append(basefname+f"_{i:03}.dat")
+            datafilenames=[]
+            while (os.path.exists(basefname+f"_{i:03}.dat")):
+                datafilenames.append(basefname+f"_{i:03}.dat")
                 i+=1
             i=0
-            while (os.path.exists(basefname+f"_CH001_{i:03}.abf") and i<max_limit):
+            while (os.path.exists(basefname+f"_CH001_{i:03}.abf")):
+                datafilenames.append(basefname+f"_CH001_{i:03}.abf")
+                i+=1
+
+            nfiles=len(datafilenames)
+            start_num, ok = PyQt5.QtWidgets.QInputDialog.getInt(None,"Starting File",f"Enter starting file number to import (0 - {nfiles-1:03})",value=0,min=0, max=nfiles-1)
+            if not ok:
+                return
+            max_limit, ok = PyQt5.QtWidgets.QInputDialog.getInt(None,"File limit","Enter maximum number of files to import",value=1)
+            if not ok:
+                return
+            self.datafilenames=[]
+            i=start_num
+            while (os.path.exists(basefname+f"_{i:03}.dat") and i<start_num+max_limit):
+                self.datafilenames.append(basefname+f"_{i:03}.dat")
+                i+=1
+            i=start_num
+            while (os.path.exists(basefname+f"_CH001_{i:03}.abf") and i<start_num+max_limit):
                 self.datafilenames.append(basefname+f"_CH001_{i:03}.abf")
                 i+=1
             if self.datafilenames:
                 for fname in self.datafilenames:
                     print("\t"+fname)
+                    
             with open(self.headerfilename,"r") as headerfile:
                 for line in headerfile:
                     if line.startswith("EDH Version"):
@@ -265,6 +283,7 @@ class GUIForm(QtGui.QMainWindow):
                         data=data.reshape((self.numberOfChannels+1,-1),order="F")
                     self.data=np.concatenate((self.data,data[0]*1e-9),axis=None)
                     self.voltage=np.concatenate((self.voltage,data[self.numberOfChannels]),axis=None)
+                    self.is_normalized_to_G=False
                     print('voltage channel shape ',self.voltage.shape)
                     print('current channel shape ',self.data.shape)
                 
@@ -280,7 +299,9 @@ class GUIForm(QtGui.QMainWindow):
 
 
         if str(os.path.splitext(self.datafilename)[1])=='.opt':
+            print(".opt file")
             self.data = np.fromfile(self.datafilename, dtype = np.dtype('>d'))
+            print(self.data.shape)
             self.matfilename = str(os.path.splitext(self.datafilename)[0])
             try:
                 self.mat = spio.loadmat(self.matfilename + '_inf')
@@ -289,8 +310,9 @@ class GUIForm(QtGui.QMainWindow):
                 self.mat = matstruct[0][0]
                 samplerate = np.float64(self.mat['samplerate'])
                 filtrate = np.float64(self.mat['filterfreq'])
-            except TypeError:
+            except TypeError as ee:
 ########## try to load NFS file #################################         
+                print ("skipping ", ee)
                 try:
                     matfile = os.path.basename(self.matfilename)
                     self.mat = loadmat.loadmat(self.matfilename)[matfile]
@@ -306,33 +328,33 @@ class GUIForm(QtGui.QMainWindow):
                     self.ramp_duration_ms = trigger_data[0].duration
                     self.eject_voltage = trigger_data[1].initial_value
                     self.eject_duration_ms = np.float64(trigger_data[1].duration)
-                except TypeError as e:
+                except Exception as e:
                     print (e)
                     pass
 ##################################################################
  
-            if samplerate < self.outputsamplerate:
-                print("data sampled at lower rate than requested, reverting to original sampling rate")
-                self.ui.outputsamplerateentry.setText(str((round(samplerate)/1000)))
-                self.outputsamplerate = samplerate
+            # if samplerate < self.outputsamplerate:
+            #     print("data sampled at lower rate than requested, reverting to original sampling rate")
+            #     self.ui.outputsamplerateentry.setText(str((round(samplerate)/1000)))
+            #     self.outputsamplerate = samplerate
                 
-            elif self.outputsamplerate > 250e3:
-                    print('sample rate can not be >250kHz for axopatch files, displaying with a rate of 250kHz')
-                    self.outputsamplerate  = 250e3
+            # elif self.outputsamplerate > 250e3:
+            #         print('sample rate can not be >250kHz for axopatch files, displaying with a rate of 250kHz')
+            #         self.outputsamplerate  = 250e3
 
 
-            if self.LPfiltercutoff >= filtrate:
-                print('Already LP filtered lower than or at entry, data will not be filtered')
-                self.LPfiltercutoff  = filtrate
-                self.ui.LPentry.setText(str((round(self.LPfiltercutoff)/1000)))
+            # if self.LPfiltercutoff >= filtrate:
+            #     print('Already LP filtered lower than or at entry, data will not be filtered')
+            #     self.LPfiltercutoff  = filtrate
+            #     self.ui.LPentry.setText(str((round(self.LPfiltercutoff)/1000)))
                 
-            elif self.LPfiltercutoff < 100e3:
-                Wn = round(self.LPfiltercutoff/(100*10**3/2),4)
-                b,a = signal.bessel(4, Wn, btype='low');
-                self.data = signal.filtfilt(b,a,self.data)
-            else:
-                print('Filter value too high, data not filtered')
-
+            # elif self.LPfiltercutoff < 100e3:
+            #     Wn = round(self.LPfiltercutoff/(100*10**3/2),4)
+            #     b,a = signal.bessel(4, Wn, btype='low');
+            #     self.data = signal.filtfilt(b,a,self.data)
+            # else:
+            #     print('Filter value too high, data not filtered')
+        print("checkpoint")
         if str(os.path.splitext(self.datafilename)[1])=='.txt':
             self.data=pandas.io.parsers.read_csv(self.datafilename,skiprows=1)
 #            self.data=np.reshape(np.array(self.data),np.size(self.data))*10**9
@@ -360,7 +382,7 @@ class GUIForm(QtGui.QMainWindow):
                 self.abflowpass = self.samplerate
                 
             self.data=self.data.astype(float)*(20./(65536*self.gain))*10**-9                
- 
+            
             if len(self.header['listADCInfo']) == 2:
                 self.v = self.data[1::2]*self.gain/10
                 self.data = self. data[::2]
@@ -829,14 +851,38 @@ class GUIForm(QtGui.QMainWindow):
         if self.analyzetype == "spike":
             import datetime
             timestamp=datetime.datetime.now().isoformat('_','seconds').replace(':','.')
-            self.spikevoltage= self.voltage[self.peaks]
-
-            np.savetxt(self.matfilename+'DB_'+timestamp+'.txt',np.column_stack((self.deli,self.frac,self.dwell,self.dt,self.noise,self.spikevoltage)),delimiter='\t',
+            if hasattr(self,"voltage"):
+                self.spikevoltage= self.voltage[self.peaks]
+                np.savetxt(self.matfilename+'DB_'+timestamp+'.txt',np.column_stack((self.deli,self.frac,self.dwell,self.dt,self.noise,self.spikevoltage)),delimiter='\t',
                     header= "deli" + '\t' + "frac" + '\t' +"dwell" + '\t'+"dt"+ '\t' + 'stdev' + '\t' + 'voltage')
+            else:
+                np.savetxt(self.datafilename+'DB_'+timestamp+'.txt',np.column_stack((self.deli,self.frac,self.dwell,self.dt,self.noise,self.peaks)),delimiter='\t',
+                    header= "deli" + '\t' + "frac" + '\t' +"dwell" + '\t'+"dt"+ '\t' + 'stdev' + '\t'+'peakpos')
+                print("saved")
             return
 
         np.savetxt(self.matfilename+'DB.txt',np.column_stack((self.deli,self.frac,self.dwell,self.dt,self.noise)),delimiter='\t',
                     header= "deli" + '\t' + "frac" + '\t' +"dwell" + '\t'+"dt"+ '\t' + 'stdev')
+
+    def normalize_to_g(self):
+
+        try:
+            if self.voltage is None:
+                return
+        except:
+            return
+        if self.is_normalized_to_G:
+            self.data=self.current_copy
+            self.p1.clear()
+            self.p1.setLabel('left',text='Current',units='A')
+            self.is_normalized_to_G=False
+        else:
+            self.current_copy=self.data.copy()
+            self.data=self.data/np.abs(self.voltage/1000)
+            self.p1.clear()
+            self.p1.setLabel('left', text='Signed Conductance', units='S')
+            self.is_normalized_to_G=True
+        self.p1.plot(self.t[2:][:-2],self.data[2:][:-2],pen='b')
 
     def inspectevent(self, clicked = []):
 
