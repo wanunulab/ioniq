@@ -23,6 +23,7 @@ from batchinfo import *
 import loadmat
 from peaktoolkit import *
 from filterkit import *
+from PythionUtils.loggers import LogSystem
 import pyabf
 import PyQt5
 from PyQt5 import QtCore, QtGui
@@ -32,6 +33,8 @@ if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
 
 if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
     PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+
+logger=LogSystem()
 
 class GUIForm(QtGui.QMainWindow):
 
@@ -303,6 +306,7 @@ class GUIForm(QtGui.QMainWindow):
             self.data = np.fromfile(self.datafilename, dtype = np.dtype('>d'))
             print(self.data.shape)
             self.matfilename = str(os.path.splitext(self.datafilename)[0])
+            self.voltage=None
             try:
                 self.mat = spio.loadmat(self.matfilename + '_inf')
                 matstruct = self.mat[os.path.basename(self.matfilename)]
@@ -484,7 +488,7 @@ class GUIForm(QtGui.QMainWindow):
         self.analyze_spikes()
         
 
-        
+    
     def analyze_spikes(self):
         global startpoints,endpoints,mins
         if self.data is None:
