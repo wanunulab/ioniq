@@ -1,6 +1,6 @@
 import numpy as np
 
-from PythIon.DataTypes.coretypes import *
+from coretypes import *
 
 class RoiSegment(MetaSegment):
     def __init__(self, **kwargs):
