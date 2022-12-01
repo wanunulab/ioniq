@@ -1,5 +1,5 @@
-import PyQt5
-from PyQt5 import QtCore, QtGui,QtWidgets
+# import PyQt6
+from pyqtgraph.Qt import QtCore, QtGui,QtWidgets
 import pyqtgraph as pg
 from pyqtgraph import dockarea
 import sys,os
@@ -8,15 +8,16 @@ import time
 import numpy as np
 from pyqtgraph import flowchart
 from flowcharts import get_lib
+import theme
 
-
-if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
-    PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-
-if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-    PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
-
-class MainAppGUIBase(QtGui.QMainWindow):
+# if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+#     PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+    
+# if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+#     # PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+#     # os.environ["QT_FONT_DPI"] = "96"
+#     os.environ["QT_SCALE_FACTOR"] = "1.25"
+class MainAppGUIBase(QtWidgets.QMainWindow):
     def __init__(self, master=None,docks_state=None):
         super().__init__(master)
         self.area=dockarea.DockArea()
@@ -73,7 +74,7 @@ class MainAppGUI(MainAppGUIBase):
         
         # self.dock_pipeline_controls
     def place_widgets(self):
-        self.loadDataBtn=QtGui.QPushButton("Load Data")
+        self.loadDataBtn=QtWidgets.QPushButton("Load Data")
         self.dock_app_controls.addWidget(self.loadDataBtn)
         self.loadDataBtn.clicked.connect(self.get_file)
         
@@ -179,14 +180,17 @@ class MainAppGUI(MainAppGUIBase):
         
 def start():
     global myapp
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     # resolution = app.desktop().screenGeometry()
     # width,height = resolution.width(), resolution.height()
     myapp = MainAppGUI()
-    
+    program_dir=os.getcwd()
+    with open(os.path.join(program_dir,"PythIon/themes/maintheme.qss"), 'r') as qss:
+        compiled_stylesheet=theme.apply_theme(qss.read(),theme.get_available_themes()[0])
+        myapp.setStyleSheet(compiled_stylesheet)
     # time.sleep(0.1)
     
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

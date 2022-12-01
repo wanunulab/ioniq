@@ -1,0 +1,120 @@
+QAbstractSpinBox{
+    
+    
+    border-color:dark_three;
+    border-style:solid;
+    border-width:2px;
+    background:dark_three;
+    color:white;
+    min-height:20px;
+    margin:2px 2px;
+}
+QAbstractSpinBox:hover{
+    background:dark_three;
+}
+
+QAbstractSpinBox::down-button {
+    
+}
+/*
+QAbstractSpinBox::down-button:hover, QAbstractSpinBox::up-button:hover{
+    background-color:context_hover;
+}
+QAbstractSpinBox::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    padding:1px 1px;
+    
+    
+    background-color:context_color;
+    color: icon_color;
+} 
+QAbstractSpinBox::up-arrow {
+    min-height:8px;
+    icon: uparrow-icon ;
+    color: icon_color;
+}
+
+
+*/
+QAbstractSpinBox::up-arrow {
+    color: pink;
+}
+
+QPushButton{
+    
+    padding: 10px 20px;
+    border-radius: 1em  ;
+    margin:5px;
+    font-size:12px;
+    background-color:dark_one;
+    border-style: none;
+    border-width: 0px;
+    border-color: dark_two;
+    color:text_foreground;
+}
+QPushButton:hover{
+    background-color:dark_three;
+    color:text_active;
+}
+QPushButton:pressed{
+    background-color:dark_four;
+    color:text_active;
+}
+
+QMainWindow,QGroupBox,QDockWidget,QFrame,QListView{
+    background-color:bg_one;
+    border-color:dark_two;
+    border-width:0px;
+}
+QSplitter::handle{
+    border-color:bg_two;
+    background:bg_two;
+}
+QSplitter::handle:horizontal {
+    width: 2px;
+}
+
+QSplitter::handle:vertical {
+    height: 2px;
+}
+
+QSplitter::handle:pressed {
+   background-color:bg_three;
+}
+
+QAbstractScrollArea{
+    background-color:bg_one;
+    color:text_foreground;
+    border-style: none;
+    border: 0px;
+    
+}
+
+QTreeView {
+    alternate-background-color: bg_three;
+    background-color:bg_two;
+    border-radius:5px;
+}
+
+QTreeView QLabel{
+    color:text_foreground;
+    background:none;
+}
+QHeaderView{
+    background:bg_two;
+    color:text_foreground;
+}
+Dock QWidget{
+    border: pink;
+}
+QTreeView::item QPushButton{
+    min-width:10px;
+    padding:3px;
+    border-radius:3px;
+    color:icon_color;
+    margin:1px;
+}
+QTreeView::item QPushButton:hover,QTreeView::item QPushButton:pressed{
+    color:pink;
+}

@@ -25,3 +25,4 @@ PythIon.egg-info/SOURCES.txt
 PythIon.egg-info/dependency_links.txt
 PythIon.egg-info/top_level.txt
 PythIon/Parsers/cparsers.pyx
+PythIon/Parsers/cparsers.pyx
