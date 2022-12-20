@@ -18,7 +18,7 @@ import numpy as np
 #     from PyQt4 import QtCore as Qc
 # except:
     # pass
-from PythIon.DataTypes.coretypes import *
+from PythIon.DataTypes.CoreTypes import *
 
 import pyximport
 pyximport.install( setup_args={'include_dirs':np.get_include()})

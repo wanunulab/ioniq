@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 import sys
 import numpy as np
-from scipy import ndimage
+
 import os
 from scipy import signal
 from scipy import io as spio
@@ -18,15 +18,15 @@ import pandas.io.parsers
 import pandas as pd
 from abfheader import *
 from CUSUMV2 import detect_cusum
-from PoreSizer import *
-from batchinfo import *
+# from PoreSizer import *
+# from batchinfo import *
 import loadmat
 from peaktoolkit import *
 from filterkit import *
 from PythionUtils.loggers import LogSystem
 import pyabf
 import PyQt5
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui,QtWidgets
 
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
     PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
@@ -36,12 +36,12 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 logger=LogSystem()
 
-class GUIForm(QtGui.QMainWindow):
+class GUIForm(QtWidgets.QMainWindow):
 
 
     def __init__(self, width, height, master=None):
         ####Setup GUI and draw elements from UI file#########
-        QtGui.QMainWindow.__init__(self,master)
+        QtWidgets.QMainWindow.__init__(self,master)
         self.ui = Ui_PythIon()
         self.ui.setupUi(self)
         
@@ -1654,12 +1654,13 @@ class GUIForm(QtGui.QMainWindow):
         
 
     def sizethepore(self):
-        self.ps = PoreSizer()
-        self.ps.show()
+        pass
+        # self.ps = PoreSizer()
+        # self.ps.show()
 
 def start():
     global myapp
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     resolution = app.desktop().screenGeometry()
     width,height = resolution.width(), resolution.height()
     myapp = GUIForm(width=width, height=height)
