@@ -15,7 +15,7 @@ from libc.math cimport log
 cimport cython
 
 from itertools import tee, chain
-from PythIon.DataTypes.coretypes import Segment,MetaSegment
+from PythIon.DataTypes.CoreTypes import Segment,MetaSegment
 
 # Implement the max and min functions as cython
 cdef inline int int_max( int a, int b ): return a if a >= b else b

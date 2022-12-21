@@ -16,6 +16,10 @@ class RawTraceSegmentTestCase(unittest.TestCase):
         self.assertEqual(self.segment.sampling_freq,self.sampling_freq)
         
     def test_segment_deletion(self):
+        self.segment=CT.Segment(current=self.trace, start=0,sampling_freq=self.sampling_freq)
+        self.assertTrue(hasattr(self.segment,'current'))
         self.segment.delete()
-        self.assertIsNone(self.segment)
+        self.assertFalse(hasattr(self.segment,'current'))
         
+        
+    

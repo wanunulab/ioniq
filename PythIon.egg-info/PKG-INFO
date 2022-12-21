@@ -4,9 +4,4 @@ Version: 0.3.0
 Summary: Nanopore Data Analysis package.
 Author: Ali Fallahi
 Author-email: fallahi.a@northeastern.edu
-License: UNKNOWN
-Platform: UNKNOWN
 Requires: cython
-
-UNKNOWN
-

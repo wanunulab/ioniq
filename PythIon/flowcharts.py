@@ -2,7 +2,7 @@ import pyqtgraph as pg
 from pyqtgraph import flowchart
 from pyqtgraph.flowchart.library.common import CtrlNode
 
-from Parsers.parsers import SpeedyStatSplit 
+from PythIon.Parsers.parsers import SpeedyStatSplit 
 
 from pyqtgraph.flowchart.NodeLibrary import NodeLibrary
 import pyqtgraph.flowchart.library as fclib
@@ -15,13 +15,13 @@ class AnalysisAbstractNode(CtrlNode):
     def __init__(self,name):
         if self.AnalysisClass is None:
             raise ValueError("No analysis class passed in.")
-            return
+            
         else:
             try:
                 self.identify_structure(self.AnalysisClass)
             except:
-                raise Exception("Invalid analysis class:", AnalysisClass)
-                return
+                raise Exception("Invalid analysis class:", self.AnalysisClass)
+                
         self.input_terminals=self._inputs
         self.output_terminals=self._outputs
         terminals={}
@@ -47,6 +47,7 @@ class AnalysisAbstractNode(CtrlNode):
         self.nodeName=AnalysisClass.get_name()
         
         
+        
     def _recursive_dataset_traversal(self,data):
         if isinstance(data,list):
             return [self._recursive_dataset_traversal(self,item) for item in data]
@@ -57,7 +58,13 @@ class AnalysisAbstractNode(CtrlNode):
                 if "events" in data.keys():
                     return {}
     def processData(self,data):
+        
         return None
+    
+    def process(self, In, display=True):
+        analyzer=self.AnalysisClass(**dict([(ctrlitem[0],self.ctrls[ctrlitem[0]].value) for ctrlitem in self.__class__.uiTemplate]))
+        results=analyzer.parse(In)
+        return dict(zip([o[0] for o in self._outputs],results))
         
 def get_lib():
     # library=NodeLibrary()

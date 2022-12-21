@@ -7,9 +7,9 @@ import json
 import time
 import numpy as np
 from pyqtgraph import flowchart
-from flowcharts import get_lib
-import theme
-
+from PythIon.flowcharts import get_lib
+import PythIon.theme as theme
+import pyabf
 # if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
 #     PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
     
@@ -20,9 +20,10 @@ import theme
 class MainAppGUIBase(QtWidgets.QMainWindow):
     def __init__(self, master=None,docks_state=None):
         super().__init__(master)
+         
         self.area=dockarea.DockArea()
         self.setCentralWidget(self.area)
-        self.showMaximized()
+        
         self.setup_docks(docks_state)
 
     def setup_docks(self,docks_state=None):
@@ -78,27 +79,31 @@ class MainAppGUI(MainAppGUIBase):
         self.dock_app_controls.addWidget(self.loadDataBtn)
         self.loadDataBtn.clicked.connect(self.get_file)
         
-        self.plot_trace=pg.PlotWidget(background='k')
+        self.plot_trace=pg.PlotWidget(background='w')
         self.plot_trace.setLabel("left","Current", units="A",siPrefix=True)
         self.plot_trace.setLabel("bottom","Time", units="s",siPrefix=True)
+        self.plot_trace.plotItem.setDownsampling(auto=True,mode='peak')
+        self.plot_trace.plotItem.setClipToView(True)
         self.dock_trace.addWidget(self.plot_trace)
         self.plot_trace_node=self.pipeline_controls.createNode("PlotWidget")
-        self.plot_trace_node.setPlot(self.plot_trace)
+        self.plot_trace_node.setPlot(self.plot_trace.plotItem)
         
         
         
     def get_file(self):
         try:
             ######## attempt to open dialog from most recent directory########
-            self.datafilename = QtWidgets.QFileDialog.getOpenFileName(self,'Open file',"",("*.log;*.opt;*.npy;*.abf;*.edh"))
-            if self.datafilename != ('', ''):
-                self.datafilename = self.datafilename[0]
-                self.direc=os.path.dirname(self.datafilename)
-                self.load_data()
+            datafilename = QtWidgets.QFileDialog.getOpenFileName(self,'Open file',"",("*.log;*.opt;*.npy;*.abf;*.edh"))
+            if datafilename != ('', ''):
+                datafilename = datafilename[0]
+                direc=os.path.dirname(datafilename)
+                self.load_data(datafilename,direc)
         except IOError:
             #### if user cancels during file selection, exit loop#############
             pass
-    def load_data(self):
+    def load_data(self, datafilename,direc):
+        self.datafilename=datafilename
+        self.direc=direc
         if str(os.path.splitext(self.datafilename)[1])=='.edh':
             self.headerfilename=self.datafilename
 
@@ -115,10 +120,10 @@ class MainAppGUI(MainAppGUIBase):
                 i+=1
 
             nfiles=len(datafilenames)
-            start_num, ok = PyQt5.QtWidgets.QInputDialog.getInt(None,"Starting File",f"Enter starting file number to import (0 - {nfiles-1:03})",value=0,min=0, max=nfiles-1)
+            start_num, ok = QtWidgets.QInputDialog.getInt(None,"Starting File",f"Enter starting file number to import (0 - {nfiles-1:03})",value=0,min=0, max=nfiles-1)
             if not ok:
                 return
-            max_limit, ok = PyQt5.QtWidgets.QInputDialog.getInt(None,"File limit","Enter maximum number of files to import",value=1)
+            max_limit, ok = QtWidgets.QInputDialog.getInt(None,"File limit","Enter maximum number of files to import",value=1)
             if not ok:
                 return
             self.datafilenames=[]
@@ -155,9 +160,9 @@ class MainAppGUI(MainAppGUIBase):
                 self.matfilename=self.datafilenames[0]
                 for datafilename in self.datafilenames:
                     if datafilename[-4:]=='.abf':
-                        # data=pyabf.ABF(datafilename)
-                        # data=data.data
-                        return
+                        data=pyabf.ABF(datafilename)
+                        data=data.data
+                        # return
                     else:
                         data=np.fromfile(datafilename,dtype="float32")
                         data=data.reshape((self.numberOfChannels+1,-1),order="F")
@@ -170,13 +175,13 @@ class MainAppGUI(MainAppGUIBase):
             # if samplerate < self.outputsamplerate:
                 # self.outputsamplerate=samplerate
                 # self.ui.outputsamplerateentry.setText(str((round(samplerate)/1000)))
-                
+            print("setting input data")
             self.pipeline_controls.setInput(dataIn=self.data)
 
         
         
         
-        
+myapp=None        
         
 def start():
     global myapp
@@ -188,10 +193,12 @@ def start():
     with open(os.path.join(program_dir,"PythIon/themes/maintheme.qss"), 'r') as qss:
         compiled_stylesheet=theme.apply_theme(qss.read(),theme.get_available_themes()[0])
         myapp.setStyleSheet(compiled_stylesheet)
+    myapp.showMaximized()
     # time.sleep(0.1)
     
-    sys.exit(app.exec())
+    return app
 
 
 if __name__ == "__main__":
-    start()
+    app=start()
+    app.exec()

@@ -19,7 +19,7 @@ PythIon/peaktoolkit.py
 PythIon/peaktoolkitwidget.py
 PythIon/plotguiuniversal.py
 PythIon/recipes.py
-PythIon/tests.py
+PythIon/theme.py
 PythIon.egg-info/PKG-INFO
 PythIon.egg-info/SOURCES.txt
 PythIon.egg-info/dependency_links.txt
