@@ -2,7 +2,7 @@ from distutils.log import error
 import logging, datetime,os
 from functools import wraps
 from pathlib import Path
-from .misc import singleton
+from PythIon.utils import Singleton
 import inspect
 
 # default_log_level=20 #INFO
@@ -19,12 +19,12 @@ try:
         os.mkdir(LOG_BACKUP_DIR)
 except Exception as e:
     print("initialization error -- failed to create appdata directories\n",e)
+    
 
 
 
 
-@singleton
-class LogSystem():
+class LogSystem(metaclass=Singleton):
     def __init__(self,stream=True,backup=True,filename="",
                  backupFilename=os.path.join(LOG_BACKUP_DIR,LOG_BACKUP_FNAME_DEFAULT)):
         self.backup=backup

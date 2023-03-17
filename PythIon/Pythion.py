@@ -25,22 +25,21 @@ from peaktoolkit import *
 from filterkit import *
 from PythionUtils.loggers import LogSystem
 import pyabf
-import PyQt5
-from PyQt5 import QtCore, QtGui,QtWidgets
+import PyQt6
+from PyQt6 import QtCore, QtWidgets
 
-if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
-    PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+# if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+#     PyQt6.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
-if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-    PyQt5.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+# if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+#     PyQt6.QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
 logger=LogSystem()
 
 class GUIForm(QtWidgets.QMainWindow):
-
-
     def __init__(self, width, height, master=None):
         ####Setup GUI and draw elements from UI file#########
+        QtWidgets.QMainWindow.__init__(self,master)
         QtWidgets.QMainWindow.__init__(self,master)
         self.ui = Ui_PythIon()
         self.ui.setupUi(self)
@@ -239,10 +238,10 @@ class GUIForm(QtWidgets.QMainWindow):
                 i+=1
 
             nfiles=len(datafilenames)
-            start_num, ok = PyQt5.QtWidgets.QInputDialog.getInt(None,"Starting File",f"Enter starting file number to import (0 - {nfiles-1:03})",value=0,min=0, max=nfiles-1)
+            start_num, ok = QtWidgets.QInputDialog.getInt(None,"Starting File",f"Enter starting file number to import (0 - {nfiles-1:03})",value=0,min=0, max=nfiles-1)
             if not ok:
                 return
-            max_limit, ok = PyQt5.QtWidgets.QInputDialog.getInt(None,"File limit","Enter maximum number of files to import",value=1)
+            max_limit, ok = QtWidgets.QInputDialog.getInt(None,"File limit","Enter maximum number of files to import",value=1)
             if not ok:
                 return
             self.datafilenames=[]
@@ -1218,10 +1217,10 @@ class GUIForm(QtWidgets.QMainWindow):
 
     def concatenatetext(self):
         if self.direc==[]:
-            textfilenames = QtGui.QFileDialog.getOpenFileNames(self, 'Open file','*.txt')[0]
+            textfilenames = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open file','*.txt')[0]
             self.direc=os.path.dirname(textfilenames[0])
         else:
-            textfilenames =QtGui.QFileDialog.getOpenFileNames(self, 'Open file',self.direc,'*.txt')[0]
+            textfilenames =QtWidgets.QFileDialog.getOpenFileNames(self, 'Open file',self.direc,'*.txt')[0]
             self.direc=os.path.dirname(textfilenames[0])
             
         i=0
@@ -1233,7 +1232,7 @@ class GUIForm(QtWidgets.QMainWindow):
                 newtextdata=np.concatenate((newtextdata,temptextdata))
             i=i+1
 
-        newfilename = QtGui.QFileDialog.getSaveFileName(self, 'New File name',self.direc,'*.txt')[0]
+        newfilename = QtWidgets.QFileDialog.getSaveFileName(self, 'New File name',self.direc,'*.txt')[0]
         np.savetxt(str(newfilename),newtextdata,delimiter='\t',
                    header= "dI" + '\t' + "fr" + '\t' +"dw"+ '\t'+"dt"+ '\t' + 'stdev')
 
@@ -1471,12 +1470,12 @@ class GUIForm(QtWidgets.QMainWindow):
 
         try:
             ######## attempt to open dialog from most recent directory########
-            self.filelist = QtGui.QFileDialog.getOpenFileNames(self,'Select Files',self.direc,("*.pkl"))[0]
+            self.filelist = QtWidgets.QFileDialog.getOpenFileNames(self,'Select Files',self.direc,("*.pkl"))[0]
             self.direc=os.path.dirname(self.filelist[0])
         except TypeError:
             ####### if no recent directory exists open from working directory##
             self.direc==[]
-            self.filelist = QtGui.QFileDialog.getOpenFileNames(self, 'Select Files',os.getcwd(),("*.pkl"))[0]
+            self.filelist = QtWidgets.QFileDialog.getOpenFileNames(self, 'Select Files',os.getcwd(),("*.pkl"))[0]
             print(self.filelist)
 #            self.direc=os.path.dirname(str(self.filelist[0][0]))
         except IOError:
@@ -1661,11 +1660,11 @@ class GUIForm(QtWidgets.QMainWindow):
 def start():
     global myapp
     app = QtWidgets.QApplication(sys.argv)
-    resolution = app.desktop().screenGeometry()
+    resolution = app.primaryScreen().geometry()
     width,height = resolution.width(), resolution.height()
     myapp = GUIForm(width=width, height=height)
     myapp.show()
-    sys.exit(app.exec_())
+    app.exec()
 
 
 if __name__ == "__main__":

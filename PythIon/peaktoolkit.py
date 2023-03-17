@@ -8,7 +8,7 @@ Written By: Ali Fallahi
 import sys
 import numpy as np
 from peaktoolkitwidget import *
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtWidgets
 
 class peakToolkit(QtWidgets.QWidget):
 

@@ -11,6 +11,8 @@ import sys
 from itertools import tee,chain
 import re
 
+from typing import Type,TypeVar
+
 import time
 import numpy as np
 # try:
@@ -18,19 +20,27 @@ import numpy as np
 #     from PyQt4 import QtCore as Qc
 # except:
     # pass
-from PythIon.DataTypes.CoreTypes import *
+# from PythIon.DataTypes.CoreTypes import *
 
-import pyximport
-pyximport.install( setup_args={'include_dirs':np.get_include()})
-from PythIon.Parsers.cparsers import FastStatSplit
+# import pyximport
+# pyximport.install( setup_args={'include_dirs':np.get_include()})
+
+from PythIon.parsers.cparsers import FastStatSplit
+from PythIon.DataTypes.CoreTypes import Segment, MetaSegment
+AnyParser=TypeVar("AnyParser",bound="Parser")
 
 import json
+
+
+
 
 #########################################
 # EVENT PARSERS
 #########################################
 
-class parser( object ):
+class Parser( object ):
+    # override this with the required attributes to get from the parent segment that the parser needs
+    required_parent_attributes:list[str]=['current']  
     def __init__( self ):
         pass
     
@@ -50,7 +60,10 @@ class parser( object ):
     def get_process_outputs(cls):
         return getattr(cls,"_parse_outputs",None)
     
-        
+    # @classmethod
+    def get_required_parent_attributes(self):
+        return getattr(self,"required_parent_attributes",[])
+            
     def __repr__( self ):
         ''' Returns a representation of the parser in the form of all arguments. '''
         return self.to_json()
@@ -70,9 +83,11 @@ class parser( object ):
                 out.write( _json )
         return _json
 
-    def parse( self, current ):
-        ''' Takes in a current segment, and returns a list of segment objects. '''
-        return [ Segment( current=current, start=0, duration=current.shape[0]/100000 ) ]
+    def parse( self, **kwargs ):
+        '''  Takes in a current segment, and returns a list of segment objects. ''' #TODO: change this description
+        current=kwargs['current']
+        return [(0,current.shape[0],{})]
+        # return [ Segment( current=current, start=0, duration=current.shape[0]/100000 ) ]
 
     # def GUI( self ):
     #     '''
@@ -126,6 +141,91 @@ class parser( object ):
 
         return None #getattr( PyPore.parsers, name )( **d )
 
+class SpikeParser(Parser):
+    required_parent_attributes=["current","sampling_freq","mean","start","std"]
+    
+    _fractionable_attrs=['height','threshold','prominence']
+    _time_attrs=['distance','prominence','width','wlen','plateau_size']
+    _other_attrs=['rel_height']
+    def __init__(self,height=None,threshold=None,distance=None,prominence=None,prominence_snr=None,width=None,wlen=None,rel_height:float=0.5,plateu_size=None,fractional:bool=True) -> None:
+        self._height=height
+        self._threshold=threshold
+        self._distance=distance
+        self._prominence=prominence
+        self._prominence_snr=prominence_snr
+        self._width=width
+        self._wlen = wlen
+        self._rel_height=rel_height
+        self._plateau_size=plateu_size
+        self._fractional=fractional
+        
+        
+    def _calculate_absolute_from_fractionals(self,mean):
+        pass
+    def parse(self,current,sampling_freq,mean,std,start):
+        from scipy import signal
+        abs_start=start
+        for key in self._time_attrs:
+            _key='_'+key
+            attr=getattr(self,_key,None)
+            if attr !=None:
+                if type(attr) in [tuple,list]:
+                        # print(sampling_freq)
+                        setattr(self,key,
+                                (sampling_freq*attr[0] if attr[0] is not None else None,
+                                 sampling_freq*attr[1] if attr[0] is not None else None))
+                else:
+                    setattr(self,key,sampling_freq*attr)
+            else:
+                setattr(self,key,attr)
+        
+        
+        for key in self._fractionable_attrs:
+            _key='_'+key
+            attr=getattr(self,_key,None)
+            if self._fractional:
+                if attr !=None:
+                    if type(attr) in [tuple,list]:
+                            setattr(self,key,
+                                    (mean*attr[0] if attr[0] is not None else None,
+                                    mean*attr[1] if attr[0] is not None else None))
+                    else:
+                        setattr(self,key,mean*attr)
+                else:
+                    setattr(self,key,attr)
+            else:
+                setattr(self,key,attr)
+                
+        if self._prominence_snr is not None and self._fractional:
+            if type(self._prominence_snr) in [tuple,list]:
+                level=std/np.sqrt(np.abs(mean))
+                self.prominence=(self._prominence_snr[0]*level if self._prominence_snr[0] is not None else None,
+                                  self._prominence_snr[1]*np.abs(mean) if self._prominence_snr[1] is not None else self.prominence[1] if type(self.prominence) in [list,tuple] else None)
+                
+        for key in self._other_attrs:
+            setattr(self,key,getattr(self,"_"+key))
+        
+        all_keys=self._fractionable_attrs+self._time_attrs+self._other_attrs
+        find_peaks_args=dict([(key,getattr(self,key)) for key in all_keys])
+        peaks,props=signal.find_peaks(current,**find_peaks_args)
+        dt = np.array(0)
+        dt=np.append(dt,np.diff(peaks)/sampling_freq)
+        for i,peak in enumerate(peaks):
+            event_start=round(props["left_ips"][i])
+            event_end=round(props["right_ips"][i])
+            unique_features={
+                "idx_rel":peak,
+                "idx_abs":abs_start+peak,
+                "peak_val":current[peak],
+                "deli":props["prominences"][i],
+                "dwell":props["widths"][i]*1e6/sampling_freq,
+                "dt":dt[i],
+                "frac":props["prominences"][i]/mean}
+            yield event_start,event_end,unique_features
+        return
+            
+        
+        
 
 class MemoryParse( object):
     '''
@@ -141,7 +241,7 @@ class MemoryParse( object):
                           start=s,
                           duration=(e-s) ) for s, e in zip(self.starts, self.ends)]
 
-class lambda_event_parser( parser ):
+class lambda_event_parser( Parser ):
     '''
     A simple rule-based parser which defines events as a sequential series of points which are below a 
     certain threshold, then filtered based on other critereon such as total time or minimum current.
@@ -238,7 +338,7 @@ def pairwise(iterable):
     next(b, None)
     return zip(a, b)
 
-class SpeedyStatSplit( parser ):
+class SpeedyStatSplit( Parser ):
     '''
     See cparsers.pyx FastStatSplit for full documentation. This is just a
     wrapper for the cyton implementation to add a GUI.
@@ -324,7 +424,7 @@ class SpeedyStatSplit( parser ):
 # STATE PARSERS 
 #########################################
 
-class snakebase_parser( parser ):
+class snakebase_parser( Parser ):
     '''
     A simple parser based on dividing when the peak-to-peak amplitude of a wave exceeds a certain threshold.
     '''
@@ -361,7 +461,7 @@ class snakebase_parser( parser ):
     def set_params( self ):
         self.threshold = float( self.threshInput.text() )
 
-class FilterDerivativeSegmenter( parser ):
+class FilterDerivativeSegmenter( Parser ):
     '''
     This parser will segment an event using a filter-derivative method. It will
     first apply a bessel filter at a certain cutoff to the current, then it will

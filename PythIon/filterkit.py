@@ -8,8 +8,8 @@ Written By: Ali Fallahi
 import sys
 import numpy as np
 from filterkitwidget import *
-import PyQt5
-from PyQt5 import QtCore, QtGui, QtWidgets
+import PyQt6
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from scipy import signal
 from scipy import ndimage

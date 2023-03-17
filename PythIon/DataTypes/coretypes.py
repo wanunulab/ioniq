@@ -8,37 +8,211 @@ import numpy as np
 import re
 import json
 from contextlib import contextmanager
+from itertools import chain
+from typing import Type,TypeVar
+from functools import cached_property
+# from PythIon.parsers.parsers import AnyParser
+AnySegment=TypeVar("AnySegment",bound="AbstractSegmentTree")
+class AbstractSegmentTree(object):
+    __slots__=('parent','children','start','end','rank','__dict__')
+    def __init__(self) -> None:
+        self.parent: AnySegment | None = None
+        self.children: list[AnySegment]=[]
+        
+        # # self._slice_relative: Type(np.s_)= np.s_[::]
+        self.start: int|None =0
+        self.end: int|None =None
+        self.rank: str=None
+        pass
+    def parse(self,parser,newrank:str,at_child_rank:str|None=None, **kwargs)->bool:
+        """
+        Parses the data in the segment or at a particular rank of child segemts into children segments with a new rank. 
+
+        :param parser: a Parser subclass instance 
+        :type parser: AnyParser
+        :param newrank: The rank string to be assigned to the newly found children
+        :type newrank: str
+        :param at_child_rank: Determines whether to traverse the children tree down to a given rank and apply the parser to those children or (if None) parse this instance, defaults to None
+        :type at_child_rank: str | None, optional
+        :return: True if no errors were encountered, else false 
+        :rtype: bool
+        """
+        try:
+            required_parent_attributes=parser.get_required_parent_attributes()
+            def _parse_one(target):
+                attributes=dict([(attr_name, target.get_feature(attr_name)) for attr_name in required_parent_attributes])
+                # if "sampling_freq" in required_parent_attributes:
+                    # attributes["sampling_freq"]=self.climb_to_rank('file').unique_features["sampling_freq"]
+                parser_results=parser.parse(**attributes,**kwargs)
+                children = [MetaSegment(start+self.start,end+self.start,parent=target,rank=newrank,unique_features=unique_features)
+                            for start,end,unique_features in parser_results]
+                target.clear_children()
+                target.add_children(children)
+                
+            if at_child_rank is None or at_child_rank == self.rank:
+                _parse_one(self)
+            else:
+                targets=self.traverse_to_rank(at_child_rank)
+                for target in targets:
+                    _parse_one(target)
+        except Exception as e:
+            raise e
+        
+        return True
+    
+    def get_feature(self,name:str):
+        if name in self.unique_features.keys():
+            return self.unique_features[name]
+        elif hasattr(self,name):
+            return getattr(self,name)
+        elif self.parent!= None:
+            return self.parent.get_feature(name)
+        else: 
+            return None
+        
+    @cached_property
+    def relative_start(self) -> int:
+        if self.parent is not None:
+            return self.start-self.parent.start
+        return self.start
+    @cached_property
+    def relative_end(self)->int:
+        if self.parent is not None:
+            return self.end - self.parent.start
+        return self.end
+    @cached_property
+    def slice(self):
+        return np.s_[self.start:self.end]
+    @cached_property
+    def relative_slice(self):
+        return np.s_[self.relative_start:self.relative_end]
+    @cached_property
+    def n(self)-> int:
+        return self.end-self.start
+    
+    def get_top_parent(self) -> AnySegment:
+        if self.parent is not None:
+            return self.parent.get_top_parent(self)
+        else:
+            return self
+        
+    def climb_to_rank(self,rank:str) -> AnySegment | None:
+        if self.rank == rank:
+            return self
+        elif self.parent is not None:
+            return self.parent.climb_to_rank(rank)
+        else:
+            return None
+        
+    def add_child(self,child: AnySegment) -> None:
+        self.add_children([child])
+            
+    def add_children(self,children: list[AnySegment]) -> None:
+        if self.start is not None and self.end is not None:
+            assert (all( [self.start <= child.start < child.end <= self.end for child in children]))
+        else:
+            assert (all( [child.n>0 for child in children]))
+        temp_children=sorted(self.children+children,key=lambda x: (x.start,x.end))
+        assert (all( [child0.end<=child1.start for child0,child1 in zip(temp_children[:-1],temp_children[1:])]))
+        self._set_children_nocheck(temp_children)
+        
+    def _set_children_nocheck(self,children: list[AnySegment]) -> None:
+        self.children=children
+        
+    def clear_children(self):
+        self.children.clear()
+        return
+    
+
+    def traverse_to_rank(self,rank:str):
+        if self.rank==rank:
+            return [self]
+        else:
+            if self.children==[]:
+                return []
+            else: 
+                return list(chain(*[child.traverse_to_rank(rank) for child in self.children]))
 
 
-class MetaSegment(object):
+# class ParsableMixin:
+#     def parse(self,parser,newrank:str,**kwargs)->bool:
+#         required_parent_attributes=parser.get_required_parent_attributes()
+#         attributes=dict([(attr_name, getattr(self,attr_name,None)) for attr_name in required_parent_attributes])
+#         self.clear_children()
+#         parser_results=parser.parse(**attributes,**kwargs)
+#         children = [MetaSegment(start,end,parent=self,rank=newrank,unique_features=unique_features)
+#                     for start,end,unique_features in parser_results]
+#         self.add_children(children)
+            
+  
+class MetaSegment(AbstractSegmentTree):
     '''
     The metadata on an abstract segment of ionic current. All information about a segment can be 
     loaded, without the expectation of the array of floats.
     '''
-
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            with ignored(AttributeError):
-                setattr(self, key, value)
-
+    __slots__=("unique_features")
+    def __init__(self, start:int, end:int,
+                 parent:AnySegment|None=None,rank:str|None = None,
+                 unique_features: dict | None={},**kwargs):
+        super().__init__()
+        # pointers to lower level segments (sub-segments)
+        # self.slice=np.s_[::]
+        # self.slice_relative=np.s_[::]
+        self.start=start
+        self.end=end
+        self.parent=parent
+        self.unique_features=unique_features
+        self.rank=rank
+        # for key, value in kwargs.items():
+        #     setattr(self, key, value)
         # If current is passed in, get metadata directly from it, then remove
-        # the reference to that array.
-        if hasattr(self, "current"):
-            self.n = len(self.current)
-            self.mean = np.mean(self.current)
-            self.std = np.std(self.current)
-            self.min = np.min(self.current)
-            self.max = np.max(self.current)
-            del self.current
+        # # the reference to that array.
+        # if hasattr(self, "current"):
+        #     self.n = len(self.current)
+        #     self.mean = np.mean(self.current)
+        #     self.std = np.std(self.current)
+        #     self.min = np.min(self.current)
+        #     self.max = np.max(self.current)
+        #     del self.current
 
         # Fill in start, end, and duration given that you only have two of them.
-        if hasattr(self, "start") and hasattr(self, "end") and not hasattr(self, "duration"):
-            self.duration = self.end - self.start
-        elif hasattr(self, "start") and hasattr(self, "duration") and not hasattr(self, "end"):
-            self.end = self.start + self.duration
-        elif hasattr(self, "end") and hasattr(self, "duration") and not hasattr(self, "start"):
-            self.start = self.end - self.duration
+        # if hasattr(self, "start") and hasattr(self, "end") and not hasattr(self, "duration"):
+        #     self.duration = self.end - self.start
+        # elif hasattr(self, "start") and hasattr(self, "duration") and not hasattr(self, "end"):
+        #     self.end = self.start + self.duration
+        # elif hasattr(self, "end") and hasattr(self, "duration") and not hasattr(self, "start"):
+        #     self.start = self.end - self.duration
+    @property
+    def current(self):
+        try:
+            c = self.climb_to_rank('file').current[self.start:self.end]
+            return c
+        except:
+            return None
+    @property
+    def mean(self):
+        return np.mean(self.current)
 
+    @property
+    def std(self):
+        return np.std(self.current)
+
+    @property
+    def min(self):
+        return np.min(self.current)
+
+    @property
+    def max(self):
+        return np.max(self.current)
+    
+    @property
+    def t(self):
+        return self.climb_to_rank("file").t[self.start:self.end]
+    
+    @property
+    def duration(self):
+        return self.t[-1]-self.t[0]
+    
     def __repr__(self):
         '''
         The representation is a JSON.
@@ -53,14 +227,13 @@ class MetaSegment(object):
         '''
 
         return self.n
-
     def delete(self):
         '''
         Delete itself. There are no arrays with which to delete references for.
         '''
 
         del self
-
+    
     def to_meta(self):
         '''
         Kept to allow for error handling, but since it's already a metasegment
@@ -74,7 +247,7 @@ class MetaSegment(object):
         Return a dict representation of the metadata, usually used prior to
         converting the dict to a JSON.
         '''
-        if hasattr (self,keys):
+        if hasattr (self,'keys'):
             keys=self.keys
         else:
             keys = ['mean', 'std', 'min', 'max', 'start', 'end', 'duration']
@@ -115,7 +288,8 @@ class MetaSegment(object):
         return MetaSegment(**attrs)
 
 
-class Segment(object):
+
+class Segment(AbstractSegmentTree):
     '''
     A segment of ionic current, and methods relevant for collecting metadata. The ionic current is
     expected to be passed as a numpy array of floats. Metadata methods (mean, std..) are decorated 
@@ -129,18 +303,17 @@ class Segment(object):
         It may also take in as many keyword arguments as needed, such as start time or duration 
         if already known. Cannot override statistical measurements. 
         '''
+        super().__init__()
         self.current = current
         for key, value in kwargs.items():
-            if hasattr(self, key):
-                continue
             with ignored(AttributeError):
-                setattr(self, key, value)
-
+                setattr(self, key, value)    
+    
+    
     def __repr__(self):
         '''
         The string representation of this object is the JSON.
         '''
-
         return self.to_json()
 
     def __len__(self):
@@ -156,7 +329,7 @@ class Segment(object):
         Return a dict representation of the metadata, usually used prior to
         converting the dict to a JSON.
         '''
-        if hasattr(self, keys):
+        if hasattr(self, 'keys'):
             keys = self.keys
         else:
             keys = ['mean', 'std', 'min', 'max', 'start', 'end', 'duration']
@@ -213,7 +386,7 @@ class Segment(object):
     @property
     def mean(self):
         return np.mean(self.current)
-
+    
     @property
     def std(self):
         return np.std(self.current)
