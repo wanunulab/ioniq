@@ -198,9 +198,21 @@ class SpikeParser(Parser):
                 
         if self._prominence_snr is not None and self._fractional:
             if type(self._prominence_snr) in [tuple,list]:
-                level=std/np.sqrt(np.abs(mean))
-                self.prominence=(self._prominence_snr[0]*level if self._prominence_snr[0] is not None else None,
-                                  self._prominence_snr[1]*np.abs(mean) if self._prominence_snr[1] is not None else self.prominence[1] if type(self.prominence) in [list,tuple] else None)
+                try:
+                    iticks=np.linspace(0,len(current),11).astype(int)
+                    std_rolling=np.array([np.std(current[ii:jj]) for ii,jj in zip(iticks[:-1],iticks[1:])])
+                    mean_rolling=np.array([np.mean(current[ii:jj]) for ii,jj in zip(iticks[:-1],iticks[1:])])
+                    std_1stQ=np.quantile(std_rolling,q=0.25)
+                    mean_1stQ=np.quantile(mean_rolling,q=0.25)
+                    level=std_1stQ/np.sqrt(np.abs(mean_1stQ))
+                    self.prominence=(self._prominence_snr[0]*level if self._prominence_snr[0] is not None else None,
+                                    self._prominence_snr[1]*np.abs(mean_1stQ) if self._prominence_snr[1] is not None else self.prominence[1] if type(self.prominence) in [list,tuple] else None)
+                except Exception as e:
+                    print("PARSING ERROR:\n",e)
+                    print("using whole mean/std instead of median of rolling...")
+                    level=std/np.sqrt(np.abs(mean))
+                    self.prominence=(self._prominence_snr[0]*level if self._prominence_snr[0] is not None else None,
+                                    self._prominence_snr[1]*np.abs(mean) if self._prominence_snr[1] is not None else self.prominence[1] if type(self.prominence) in [list,tuple] else None)
                 
         for key in self._other_attrs:
             setattr(self,key,getattr(self,"_"+key))

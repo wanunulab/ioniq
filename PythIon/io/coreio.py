@@ -49,7 +49,7 @@ class AbstractFileReader(object):
         
 class EDHReader(AbstractFileReader):
     ext=".edh" 
-    accepted_keywords=["voltage_compress","n_remove"]
+    accepted_keywords=["voltage_compress","n_remove","downsample","prefilter"]
     
     current_multiplier=1e-9 #current is stored in nA in the datafile
     voltage_multiplier=1e-3 #voltage is stored in mV in the datafile
@@ -77,7 +77,15 @@ class EDHReader(AbstractFileReader):
                     case _:
                         pass
         # print(metadata)
+        # if multichannel:
+        #     active_channels= list(map(int,metadata["Active channels"].split()))
+        #     active_channels=[str(x-1) for x in active_channels]
+        #     core_fname=os.path.splitext(os.path.split(filename)[-1])[0]
+        #     for channel_name in active_channels:
+        #         file_list_abf=glob.glob(f"{core_fname}_CH00{channel_name}_*.abf",root_dir=direc)
+                
         file_list_abf=glob.glob("*.abf",root_dir=direc)
+        
         if len(file_list_abf)>0:
             abf_buffers=tuple(map(pyabf.ABF,[os.path.join(direc,file) for file in file_list_abf]))
             # list(map())
@@ -99,15 +107,32 @@ class EDHReader(AbstractFileReader):
         assert(current.shape==voltage.shape)
         metadata["HeaderFile"]=filename
         #Scale the current and voltage arrays to SI units
+        if kwargs.get("prefilter",None):
+            prefilter=kwargs.get("prefilter")
+            assert callable(prefilter)
+            prefilter(current)
+        
         current*=self.current_multiplier
         voltage*=self.voltage_multiplier
-        
+        if kwargs.get("downsample",None):
+            downsample_factor=kwargs.get("downsample")
+            assert type(downsample_factor) is int,f"non-integer downsampling factor not supported: {type(downsample_factor)}, {downsample_factor}"
+            if downsample_factor>1:
+                _current=current[::downsample_factor].copy()
+                _voltage=voltage[::downsample_factor].copy()
+                del current,voltage
+                current,voltage=_current,_voltage
+                metadata["downsample"]=downsample_factor
+                metadata["eff_sampling_freq"]=metadata["Sampling frequency (SR)"]/downsample_factor
+            
+            
         if kwargs.get("voltage_compress",False) == True:
             n_remove=kwargs.get("n_remove",0)
             voltage_splits=split_voltage_steps(voltage,as_tuples=True,n_remove=n_remove)
             voltage_points=[(sl,voltage[sl[0]]) for sl in voltage_splits]
             del voltage
             return metadata,current,voltage_points
+        
         return metadata,current,voltage
             
             

@@ -16,7 +16,9 @@ class SessionFileManager(MetaSegment,metaclass=Singleton):
     def _set_children_nocheck(self, children: list[AnySegment]) -> None:
         self.children.clear()
         self.children=children
-        
+    def _remove(self, child):
+        if child in self.children:
+            self.children.remove(child) 
         
         
 
@@ -38,6 +40,15 @@ class TraceFile(Segment):
             self.parent.add_child(self)
     def plot (self,rank,ax,downsample_per_rank,color_per_rank):
         pass
+    
+    def delete(self):
+        try:
+            if self.parent!=None:
+                self.parent._remove(self)
+        except Exception as e:
+            print(e)
+        
+        super().delete()
 
 
                 
