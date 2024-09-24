@@ -2,6 +2,8 @@ import unittest
 
 from SpikeAnalysis import *
 import numpy as np
+
+
 class TestDetectReversals(unittest.TestCase):
     def setUp(self) -> None:
         return super().setUp()

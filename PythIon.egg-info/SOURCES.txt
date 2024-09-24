@@ -8,7 +8,7 @@ PythIon/PoreSizer.py
 PythIon/PoreSizerWidget.py
 PythIon/Pythion.py
 PythIon/__init__.py
-PythIon/abfheader.py
+PythIon/abfheader2.py
 PythIon/batchinfo.py
 PythIon/batchinfowidget.py
 PythIon/filterkit.py
@@ -25,5 +25,8 @@ PythIon.egg-info/PKG-INFO
 PythIon.egg-info/SOURCES.txt
 PythIon.egg-info/dependency_links.txt
 PythIon.egg-info/top_level.txt
+PythIon/Parsers/cparsers.c
 PythIon/Parsers/cparsers.pyx
-PythIon/Parsers/cparsers.pyx
+tests/testDummy.py
+tests/testGuiBasic.py
+tests/testTrace.py
