@@ -13,21 +13,21 @@ import re
 
 from typing import Type, TypeVar
 
-import time
+# import time
 import numpy as np
-try:
-    from PyQt5 import QtGui as Qt
-    from PyQt5 import QtCore as Qc
-except:
-    pass
-from IonTrace.DataTypes.coretypes import *
+# try:
+#     from PyQt5 import QtGui as Qt
+#     from PyQt5 import QtCore as Qc
+# except:
+#     pass
+# from ioniq.core import *
 
 import pyximport
 pyximport.install( setup_args={'include_dirs':np.get_include()})
 
 
-from IonTrace.DataTypes.coretypes import Segment, MetaSegment
-from IonTrace.Parsers.cparsers import FastStatSplit
+from ioniq.core import Segment, MetaSegment
+from ioniq.cparsers import FastStatSplit
 AnyParser=TypeVar("AnyParser",bound="Parser")
 
 import json
