@@ -11,6 +11,8 @@ class Singleton(type): #generic singleton metaclass
 
        
 def split_voltage_steps(voltage:np.ndarray,n_remove=0,as_tuples=False):
+    import numpy as np
+    
     # Check if the current or voltage arrays are empty
     if not voltage.size:
         return []
