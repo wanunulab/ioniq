@@ -14,6 +14,7 @@ setup(
     author_email='fallahi.a@northeastern.edu',
     url='https://github.com/wanunulab/ioniq/',
     packages=['ioniq'],
+    package_dir={'ioniq':'src'}
     description='A modular nanopore data analysis package.',
     requires=[line.strip() for line in open('requirements.txt')],
     include=["src*"],
