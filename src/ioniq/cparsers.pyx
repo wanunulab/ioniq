@@ -1,7 +1,7 @@
 # cparsers.pyx
 # Contact: Jacob Schreiber
 #          jmschreiber91@gmail.com
-# modified for PythIon by Ali Fallahi
+# modified for ioniq by Ali Fallahi
 '''
 This contains cython implementations of ionic current parsers which are in
 parsers.py. Currently the only parser is StatSplit, which is implemented
