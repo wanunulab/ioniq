@@ -1,5 +1,5 @@
 """
-Module coreio.py manages IO process
+Module io.py manages IO process
 """
 import os
 import numpy as np
