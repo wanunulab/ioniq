@@ -4,7 +4,7 @@ import numpy as np
 from Cython.Distutils import build_ext
 
 ext_modules=[
-    Extension("ioniq.cparsers",["src/cparsers.pyx"],include_dirs=[np.get_include()] )
+    Extension("ioniq.cparsers",["src/ioniq/cparsers.pyx"],include_dirs=[np.get_include()] )
 ]
 
 setup(
@@ -14,10 +14,10 @@ setup(
     author_email='fallahi.a@northeastern.edu',
     url='https://github.com/wanunulab/ioniq/',
     packages=['ioniq'],
-    package_dir={'ioniq':'src'}
+    package_dir={'':'src/'},
     description='A modular nanopore data analysis package.',
-    requires=[line.strip() for line in open('requirements.txt')],
-    include=["src*"],
+    requires=['cython'],
+    include=["src/ioniq*"],
     cmdclass={"build_ext": build_ext},
     ext_modules=ext_modules
     
