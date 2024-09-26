@@ -5,7 +5,7 @@ import os
 import numpy as np
 import pyabf
 import glob
-from PythIon.utils import split_voltage_steps
+from ioniq.utils import split_voltage_steps
 
 
 class AbstractFileReader(object):
