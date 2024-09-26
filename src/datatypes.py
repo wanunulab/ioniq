@@ -2,8 +2,8 @@
 DataTypes module
 """
 
-from IonTrace.DataTypes.coretypes import *
-from PythIon.utils import Singleton
+from ioniq.core import *
+from ioniq.utils import Singleton
 import datetime
 
 
