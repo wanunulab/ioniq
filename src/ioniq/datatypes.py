@@ -5,7 +5,7 @@ DataTypes module
 from ioniq.core import *
 from ioniq.utils import Singleton
 import datetime
-
+import numpy as np
 
 class SessionFileManager(MetaSegment, metaclass=Singleton):
     """
