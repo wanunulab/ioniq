@@ -1,7 +1,0 @@
-Metadata-Version: 2.1
-Name: PythIon
-Version: 0.3.0
-Summary: Nanopore Data Analysis package.
-Author: Ali Fallahi
-Author-email: fallahi.a@northeastern.edu
-Requires: cython
