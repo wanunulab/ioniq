@@ -14,3 +14,4 @@ pyqtgraph~=0.13.7
 pyabf~=2.3.8
 matplotlib~=3.9.2
 pandas~=2.2.2
+pyqt5~=5.15.11
