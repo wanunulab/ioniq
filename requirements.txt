@@ -1,5 +1,3 @@
-pip~=24.2
-wheel~=0.44.0
 pytest~=8.3.2
 numpy~=2.1.1
 Cython~=3.0.11
@@ -7,6 +5,4 @@ setuptools~=72.1.0
 pytz~=2024.1
 platformdirs~=4.2.2
 scipy~=1.14.1
-pyqtgraph~=0.13.7
 pyabf~=2.3.8
-pyqt5~=5.15.11
