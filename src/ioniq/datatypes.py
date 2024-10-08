@@ -1,11 +1,13 @@
-"""
-DataTypes module
-"""
-
-from ioniq.core import *
+# #!/usr/bin/env python
+# """
+# DataTypes module
+# """
+#
+from ioniq.core import MetaSegment, AnySegment, Segment
 from ioniq.utils import Singleton
 import datetime
 import numpy as np
+
 
 class SessionFileManager(MetaSegment, metaclass=Singleton):
     """
@@ -45,7 +47,7 @@ class SessionFileManager(MetaSegment, metaclass=Singleton):
         Remove a child from the children list
         """
         if child in self.children:
-            self.children.remove(child) 
+            self.children.remove(child)
 
 
 class TraceFile(Segment):
@@ -78,7 +80,7 @@ class TraceFile(Segment):
 
     def plot(self, rank, ax, downsample_per_rank, color_per_rank):
         pass
-    
+
     def delete(self):
         try:
             if self.parent is not None:
@@ -86,8 +88,8 @@ class TraceFile(Segment):
         except Exception as e:
             print(e)
         super().delete()
-        
-        
+
+
 # class RoiSegment(MetaSegment):
 #     def __init__(self, **kwargs):
 #         super().__init__(**kwargs)
@@ -95,7 +97,7 @@ class TraceFile(Segment):
 #         if hasattr(self,'parent'):
 #             if hasattr(self.parent,'sampling_freq'):
 #                 self.sampling_freq=self.parent.sampling_freq
-    
+
 #     def get_bounds(self,seconds=True):
 #         if seconds and isinstance(self.start,int):
 #             return(self.start/self.sampling_freq,self.end/self.sampling_freq)
