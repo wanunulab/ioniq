@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Module io.py manages IO process
 """
@@ -6,8 +7,8 @@ import numpy as np
 import pyabf
 import glob
 from ioniq.utils import split_voltage_steps
-
-
+import xml.etree.ElementTree as ET
+from ioniq.utils import si_eval
 class AbstractFileReader(object):
 
     # File extension. Replace with the appropriate file extension in subclass, such as ".abf", ".edh", ".mat", etc.
@@ -27,12 +28,14 @@ class AbstractFileReader(object):
         """
         Read a datafile or series of files. Files are identified according to their extension.
         Data formats that come with a header file must be referred to by the header file.
-        If inheriting from the AbstractFileReader class, do not override this function; instead, create a custom _read method.
+        If inheriting from the AbstractFileReader class, do not override this function; instead,
+        create a custom _read method.
 
         :param filename: file name or list of file names, typically given as a string or PathLike object.
         :type filename: str or os.PathLike or list[str] or list[os.PathLike]
         :param **kwargs: keyword arguments passed directly to the file reader class that matches the data format.
-        :return: [metadata, current, etc.. ]. If the input "filename" is a list, this function returns a generator object that yields the output of _read() for every file in the input list.
+        :return: [metadata, current, etc.. ]. If the input "filename" is a list, this function returns a generator
+        object that yields the output of _read() for every file in the input list.
         :rtype: tuple[dict,np.ndarray [,np.ndarray or tuple[slice,np.float32]]]
         """
         for key in kwargs.keys():
@@ -67,27 +70,27 @@ class EDHReader(AbstractFileReader):
         super().__init__()
         
     def _read(self, filename, **kwargs):
-        from pyqtgraph import siEval
         filename = os.path.abspath(filename)
         direc = os.path.dirname(filename)
         metadata = {}
         
-        with (open(filename, 'r') as headerfile):
+        with open(filename, 'r') as headerfile:
             for line in headerfile:
                 lsplit = line.split(":")
                 match lsplit:
                     case ["EDH Version" | "Channels" | "Oversampling x4" | "Active channels", *val]:
                         metadata[lsplit[0]] = "".join(val).strip()
                     case ["Sampling frequency (SR)" | "Range", *val]:
-                        metadata[lsplit[0]] = siEval("".join(val).strip())
+                        metadata[lsplit[0]] = si_eval("".join(val).strip())
                     case ["Final Bandwidth", *val]:
                         metadata["Final Bandwidth"] = metadata["Sampling frequency (SR)"] / \
                                                       int(val[0].strip().split()[0].split("/")[1])
                     case ["Acquisition start time", *val]:
                         metadata["Acquisition start time"] = " ".join(line.split(" ")[-2:])
+                        # print(metadata)
                     case _:
                         pass
-        # print(metadata)
+        # print({metadata})
         # if multichannel:
         #     active_channels= list(map(int,metadata["Active channels"].split()))
         #     active_channels=[str(x-1) for x in active_channels]
@@ -101,7 +104,6 @@ class EDHReader(AbstractFileReader):
             abf_buffers = tuple(map(pyabf.ABF, [os.path.join(direc, file) for file in file_list_abf]))
             # list(map())
             current = np.concatenate([buffer.data[0] for buffer in abf_buffers], axis=0, dtype=np.float32)
-            
             voltage = np.concatenate([buffer.data[-1] for buffer in abf_buffers], axis=0, dtype=np.float32)
             metadata["DataFiles"] = file_list_abf
             metadata["StorageFormat"] = ".abf"
@@ -143,19 +145,116 @@ class EDHReader(AbstractFileReader):
             voltage_splits = split_voltage_steps(voltage, as_tuples=True, n_remove=n_remove)
             voltage_points = [(sl, voltage[sl[0]]) for sl in voltage_splits]
             del voltage
+
             return metadata, current, voltage_points
-        
+
         return metadata, current, voltage
-            
+
+
+## TODO: Define a new class to read .opt files from axopatch
+class OPTReader(AbstractFileReader):
+    """
+    Class to handle OPT  and XML files from Axopatch
+    to get a shift timing between voltage and current
+    """
+    ext = ".opt"
+
+    def __init__(self):
+        """
+        Parent AbstractFileReader class initializations
+        """
+        super().__init__()
+
+    ## TODO: .opt file 1D array. What values?
+    def _read_opt(self, filename):
+        """
+
+        :param filename:
+        :return:
+        """
+        # is opt file binary?
+        file = np.fromfile(filename, dtype="float32")
+
+
+    def _read_xml(self, filename):
+        """
+
+        :param filename:
+        :return:
+        """
+        tree = ET.parse(filename)
+        root = tree.getroot()
+
+        ## TODO: Extract "time stamp" from .xml ?
+        timing_shift_raw = root.find("timestamp")
+        if timing_shift_raw is not None:
+            timing_shift = float(timing_shift_raw.text)
+        else:
+            timing_shift = 0
+        return timing_shift
+
+
+
 
 if __name__ == "__main__":
-    print(EDHReader.ext)
-    e=EDHReader()
-    meta,current,voltage=e.read("C:/Users/alito/EDR/R506M2_FSBSATBead/R506M2_FSBSATBead.edh",voltage_compress=True)
-    import matplotlib.pyplot as plt
+    # print(EDHReader.ext)
+    e = EDHReader()
+    meta, current, voltage = e.read("/Users/dinaraboyko/grad_school/wanunu_lab/data/cytKWT/8_6_2024/4_channel_2MGdmCl_buffer_cytK_P6_106_CH003/4_channel_2MGdmCl_buffer_cytK_P6.edh", voltage_compress=True)
+    # import matplotlib.pyplot as plt
     # plt.plot(current[::100])
     # plt.waitforbuttonpress()
     # e.read("C:/Users/alito/EDR/Q402m1_SBead/Q402m1_SBead.edh")
-    
-    
-    
+
+
+    ###################################
+    ##  Explore XML files
+    ####################################
+    tree = ET.parse("../../test_data/TOKW1_DPhPC_Chol_Hexane/B090524SR_100kHz__000.xml")
+    root = tree.getroot()
+
+    timing_data = []
+    sweep_data = []
+
+    # timestamp and alignment inf from XML
+    for timestamp in root.findall('timestamp'):
+        wall_clock = float(timestamp.get('wall_clock'))
+        msec = int(timestamp.get('msec'))
+
+        # sweep information
+        sweep = timestamp.find('sweep')
+        if sweep is not None:
+            sweep_number = int(sweep.get('N'))
+            sweep_data.append({'sweep': sweep_number, 'time': wall_clock + msec / 1000})
+
+        # HWtiming_cap_step inside timestamp
+        hw_timing = timestamp.find('HWtiming_cap_step')
+        if hw_timing is not None:
+            # time_alignment_marks
+            alignment_segments = hw_timing.find('time_alignment_marks')
+            if alignment_segments is not None:
+                segments = alignment_segments.findall('time_alignment_segment')
+
+                # Extract information from each time_alignment_segment
+                for segment in segments:
+                    num_samples = int(segment.get('number_samples'))
+                    voltage_mV = float(segment.get('voltage_mV'))
+                    time_ms = float(segment.get('time_ms'))
+
+                    # Store the segment information in the list
+                    timing_data.append({
+                        'samples': num_samples,
+                        'voltage': voltage_mV,
+                        'time_ms': time_ms
+                    })
+
+    # Output the results
+    print(f"Number of alignment segments: {len(timing_data)}")
+    for segment in timing_data:
+        print(segment)
+
+    opt_file = np.fromfile("../../test_data/TOKW1_DPhPC_Chol_Hexane/B090524SR_100kHz__000.opt", dtype="float32")
+    print(opt_file[1:10])
+
+
+
+
