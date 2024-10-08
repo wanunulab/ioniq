@@ -21,7 +21,8 @@ jobs:
         pip install -r requirements.txt
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files 'src/ioniq/*.py') --output=lint.txt || true
+        pylint $(git ls-files 'src/ioniq/*.py')
+       
     # - name: Upload Artifact
       # uses: actions/upload-artifact@v3
       # with:
