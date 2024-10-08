@@ -22,9 +22,9 @@ jobs:
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files 'src/ioniq/*.py') --output=lint.txt || true
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: lint.txt
-        path: lint.txt
+    # - name: Upload Artifact
+      # uses: actions/upload-artifact@v3
+      # with:
+        # name: lint.txt
+        # path: lint.txt
         
