@@ -21,8 +21,6 @@ jobs:
           pip install -r requirements.txt
         continue-on-error: true
       - name: Test with pytest
-        run: |  
-          coverage run -m pytest  -v -s
-      - name: Generate Coverage Report
-        run: |  
-          coverage report -m
+        run: | 
+          pip install pytest pytest-cov
+          pytest $(git ls-files 'tests/*.py') --cov=com --cov-report=xml --cov-report=html
