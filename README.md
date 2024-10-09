@@ -9,3 +9,6 @@ temporarily while the package is under development, clone the repo, `cd` into th
 ```
 pip install -e .
 ```
+
+https://github.com/wanunulab/ioniq/actions/workflows/pylint.yml/badge.svg
+
