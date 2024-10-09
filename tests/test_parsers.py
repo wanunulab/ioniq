@@ -1,7 +1,10 @@
 """
 Test module for parsers.py
 """
+import sys
+from pathlib import Path
 
+sys.path.append(str(Path(__file__).parent.parent / 'src'))
 import numpy as np
 import pytest
 from ioniq.parsers import SpikeParser, SpeedyStatSplit
