@@ -181,10 +181,9 @@ class AbstractSegmentTree(object):
             except AssertionError:
                 print(f"One or more children have positions outside the parent's range ({self.start}, {self.end}).")
         else:
-            try:
-                assert all([child.n > 0 for child in children])
-            except AssertionError:
-                print(f"One or more children have a segment length <= 0.")
+
+            assert all([child.n > 0 for child in children]), f"One or more children have a segment length <= 0."
+
         # Sort the list of children
         temp_children = sorted(self.children + children, key=lambda x: (x.start, x.end))
         try:
