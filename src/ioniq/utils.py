@@ -15,6 +15,7 @@ class Singleton(type):
 
     def __init__(self, *args, **kwargs):
         """
+        Class initialization
 
         :param args: Arguments for the class
         :param kwargs: Keyword arguments for the class
@@ -49,7 +50,7 @@ def split_voltage_steps(voltage: np.ndarray, n_remove=0, as_tuples=False):
     :type voltage: numpy.ndarray
     :param n_remove: Number of points to remove from the start of each split, defaults to 0.
     :type n_remove: int
-    :param as_tuples: Whether to return the splits as tuples of start and end indices, defaults=False.
+    :param as_tuples: Return the splits as tuples of start and end indices, defaults=False.
     :type as_tuples: bool
     :raises ValueError: If `n_remove` is negative or larger than the start of the voltage changes.
     :return: Start and end indices of the splits.
@@ -103,7 +104,8 @@ def si_eval(value, unit=None, return_unit=False):
             numeric_val = float(numeric_val)
             final_value = numeric_val * _si_multiplier_unit(unit_full[0])
         except ValueError:
-            raise ValueError(f"Invalid value format: {value}. Should be 'number unit'(Ex:'1.2 kHz')")
+            print(f"Invalid value format: {value}. Should be '"
+                             f"number unit'(Ex:'1.2 kHz')")
 
     # If value is a numer:
     elif isinstance(value, (int, float)):
@@ -128,17 +130,17 @@ def _get_prefix_val() -> dict:
     """
 
     prefix = {
-    "f": 1e-15,
-    "p": 1e-12,
-    "n": 1e-9,
-    "u": 1e-6,
-    "μ": 1e-6,
-    "m": 1e-3,
-    "c": 1e-2,
-    "k": 1e3,
-    "M": 1e6,
-    "G": 1e9,
-    "T": 1e12,
+        "f": 1e-15,
+        "p": 1e-12,
+        "n": 1e-9,
+        "u": 1e-6,
+        "μ": 1e-6,
+        "m": 1e-3,
+        "c": 1e-2,
+        "k": 1e3,
+        "M": 1e6,
+        "G": 1e9,
+        "T": 1e12,
     }
     return prefix
 
@@ -158,5 +160,5 @@ def _si_multiplier_unit(unitstr: str) -> float:
 
     if unitstr in _get_prefix_val():
         return _get_prefix_val()[unitstr]
-    else:
-        raise ValueError(f"Unit prefix is not known: {unitstr}, see available:\n{_get_prefix_val()}")
+
+    raise ValueError(f"Unit prefix is not known: {unitstr}, see available:\n{_get_prefix_val()}")

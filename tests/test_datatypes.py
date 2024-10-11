@@ -3,13 +3,12 @@ Test module for datatypes.py
 """
 import sys
 from pathlib import Path
-
 sys.path.append(str(Path(__file__).parent.parent / 'src'))
-
 from ioniq.core import *
 from ioniq.datatypes import SessionFileManager, TraceFile
 import datetime
 import numpy as np
+
 
 
 def test_session_file_manager():

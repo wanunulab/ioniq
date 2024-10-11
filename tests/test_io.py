@@ -1,7 +1,10 @@
 """
 Test module for io.py
 """
+import sys
+from pathlib import Path
 
+sys.path.append(str(Path(__file__).parent.parent / 'src'))
 import pytest
 import os
 from ioniq.io import EDHReader

@@ -1,12 +1,12 @@
-# #!/usr/bin/env python
-# """
-# DataTypes module
-# """
-#
-from ioniq.core import MetaSegment, AnySegment, Segment
-from ioniq.utils import Singleton
+#!/usr/bin/env python
+"""
+DataTypes module
+"""
+
 import datetime
 import numpy as np
+from ioniq.core import MetaSegment, AnySegment, Segment
+from ioniq.utils import Singleton
 
 
 class SessionFileManager(MetaSegment, metaclass=Singleton):
@@ -74,19 +74,27 @@ class TraceFile(Segment):
         # If voltage data exists, create MetaSegment instance for each voltage step
         if self.voltage is not None:
             self.add_children([MetaSegment(start, end, parent=self, rank="vstep",
-                                           unique_features={"voltage": v}) for (start, end), v in voltage])
+                                           unique_features={"voltage": v})
+                               for (start, end), v in voltage])
         if self.parent is not None:
             self.parent.add_child(self)
 
-    def plot(self, rank, ax, downsample_per_rank, color_per_rank):
+    def plot(self, rank, axes, downsample_per_rank, color_per_rank):
+        """
+        Method for plotting
+        """
         pass
 
     def delete(self):
+        """
+        Delete the current object, removing it from its parent
+
+        """
         try:
             if self.parent is not None:
                 self.parent._remove(self)
-        except Exception as e:
-            print(e)
+        except Exception as error:
+            print(error)
         super().delete()
 
 
@@ -101,7 +109,8 @@ class TraceFile(Segment):
 #     def get_bounds(self,seconds=True):
 #         if seconds and isinstance(self.start,int):
 #             return(self.start/self.sampling_freq,self.end/self.sampling_freq)
-#         if (seconds and isinstance(self.start,float)) or (not seconds and isinstance(self.start,int)):
+#         if (seconds and isinstance(self.start,float)) or
+#             (not seconds and isinstance(self.start,int)):
 #             return(self.start,self.end)
 #         if not seconds and isinstance(self.start,float):
 #             return(int(self.start*self.sampling_freq),int(self.end*self.sampling_freq))

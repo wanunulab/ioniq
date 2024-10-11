@@ -2,39 +2,50 @@
 """
 Module io.py manages IO process
 """
-import os
-import numpy as np
-import pyabf
-import glob
-from ioniq.utils import split_voltage_steps
 import xml.etree.ElementTree as ET
+import os
+import glob
+import pyabf
+import numpy as np
 from ioniq.utils import si_eval
-class AbstractFileReader(object):
+from ioniq.utils import split_voltage_steps
 
-    # File extension. Replace with the appropriate file extension in subclass, such as ".abf", ".edh", ".mat", etc.
+
+class AbstractFileReader(object):
+    """
+    An abstract class for reading various data files (.abf, .edh, .mat, .opt, .xml)
+    This class defines the structure for file readers
+    """
+    # File extension. Replace with the appropriate file extension
+    # in subclass, such as ".abf", ".edh", ".mat", etc.
     ext = "___"
 
-    # Replace with a list of accepted keyword arguments passed to the _read() function in every subclass.
+    # Replace with a list of accepted keyword arguments passed
+    # to the _read() function in every subclass.
     accepted_keywords = []
-    
-    # Values to scale voltage and current to SI units. Change these in subclasses to match the idata scale
+
+    # Values to scale voltage and current to SI units.
+    # Change these in subclasses to match the idata scale
     current_multiplier: float = 1.0
     voltage_multiplier: float = 1.0
-    
+
     def __init__(self):
         self.filename = "UNDEFINED"
-    
+
     def read(self, filename: str, **kwargs):
         """
         Read a datafile or series of files. Files are identified according to their extension.
         Data formats that come with a header file must be referred to by the header file.
-        If inheriting from the AbstractFileReader class, do not override this function; instead,
-        create a custom _read method.
+        If inheriting from the AbstractFileReader class, do not override this function;
+        instead, create a custom _read method.
 
-        :param filename: file name or list of file names, typically given as a string or PathLike object.
+        :param filename: file name or list of file names, typically
+        given as a string or PathLike object.
         :type filename: str or os.PathLike or list[str] or list[os.PathLike]
-        :param **kwargs: keyword arguments passed directly to the file reader class that matches the data format.
-        :return: [metadata, current, etc.. ]. If the input "filename" is a list, this function returns a generator
+        :param **kwargs: keyword arguments passed directly to the file reader class
+        that matches the data format.
+        :return: [metadata, current, etc.. ]. If the input "filename" is a list,
+        this function returns a generator
         object that yields the output of _read() for every file in the input list.
         :rtype: tuple[dict,np.ndarray [,np.ndarray or tuple[slice,np.float32]]]
         """
@@ -51,29 +62,35 @@ class AbstractFileReader(object):
             assert(os.path.splitext(filename)[-1].lower() == self.ext.lower())
             self.kwargs = kwargs
             return self._read(filename, **kwargs)
-        
+
     def _read(self, filename, **kwargs):
         pass  # rewrite this function in inherited classes to process the data
-    
+
     def __repr__(self):
         print(self.filename)
 
 
 class EDHReader(AbstractFileReader):
+    """
+    A class for reading and processing .edh files, including parsing
+    metadata and extracting current and voltage data
+
+    """
+
     ext = ".edh"
     accepted_keywords = ["voltage_compress", "n_remove", "downsample", "prefilter"]
-    
+
     current_multiplier = 1e-9  # current is stored in nA in the datafile
     voltage_multiplier = 1e-3  # voltage is stored in mV in the datafile
 
     def __init__(self):
         super().__init__()
-        
+
     def _read(self, filename, **kwargs):
         filename = os.path.abspath(filename)
         direc = os.path.dirname(filename)
         metadata = {}
-        
+
         with open(filename, 'r') as headerfile:
             for line in headerfile:
                 lsplit = line.split(":")
@@ -97,21 +114,25 @@ class EDHReader(AbstractFileReader):
         #     core_fname=os.path.splitext(os.path.split(filename)[-1])[0]
         #     for channel_name in active_channels:
         #         file_list_abf=glob.glob(f"{core_fname}_CH00{channel_name}_*.abf",root_dir=direc)
-                
+
         file_list_abf = glob.glob("*.abf", root_dir=direc)
-        
+
         if len(file_list_abf) > 0:
-            abf_buffers = tuple(map(pyabf.ABF, [os.path.join(direc, file) for file in file_list_abf]))
+            abf_buffers = tuple(map(pyabf.ABF, [os.path.join(direc, file)
+                                                for file in file_list_abf]))
             # list(map())
-            current = np.concatenate([buffer.data[0] for buffer in abf_buffers], axis=0, dtype=np.float32)
-            voltage = np.concatenate([buffer.data[-1] for buffer in abf_buffers], axis=0, dtype=np.float32)
+            current = np.concatenate([buffer.data[0] for buffer in abf_buffers],
+                                     axis=0, dtype=np.float32)
+            voltage = np.concatenate([buffer.data[-1] for buffer in abf_buffers],
+                                     axis=0, dtype=np.float32)
             metadata["DataFiles"] = file_list_abf
             metadata["StorageFormat"] = ".abf"
         else:
             file_list_dat = glob.glob("*.dat", root_dir=direc)
             if len(file_list_dat) == 0:
                 raise FileExistsError("No associated data files (*.abf or *.dat) found.")
-            data = np.concatenate([np.fromfile(os.path.join(direc, file), dtype="float32") for file in file_list_dat])
+            data = np.concatenate([np.fromfile(os.path.join(direc, file), dtype="float32")
+                                   for file in file_list_dat])
             data = data.reshape((int(metadata["Active channels"])+1, -1), order="F")
             current = data[0]
             voltage = data[-1]
@@ -125,20 +146,22 @@ class EDHReader(AbstractFileReader):
             prefilter = kwargs.get("prefilter")
             assert callable(prefilter)
             prefilter(current)
-        
+
         current *= self.current_multiplier
         voltage *= self.voltage_multiplier
         if kwargs.get("downsample", None):
             downsample_factor = kwargs.get("downsample")
             assert type(downsample_factor) is int, \
-                f"non-integer downsampling factor not supported:{type(downsample_factor)}, {downsample_factor}"
+                f"non-integer downsampling factor not supported:" \
+                f"{type(downsample_factor)}, {downsample_factor}"
             if downsample_factor > 1:
                 _current = current[::downsample_factor].copy()
                 _voltage = voltage[::downsample_factor].copy()
                 del current, voltage
                 current, voltage = _current, _voltage
                 metadata["downsample"] = downsample_factor
-                metadata["eff_sampling_freq"] = metadata["Sampling frequency (SR)"]/downsample_factor
+                metadata["eff_sampling_freq"] = \
+                    metadata["Sampling frequency (SR)"] / downsample_factor
 
         if kwargs.get("voltage_compress", False):
             n_remove = kwargs.get("n_remove", 0)
@@ -151,7 +174,6 @@ class EDHReader(AbstractFileReader):
         return metadata, current, voltage
 
 
-## TODO: Define a new class to read .opt files from axopatch
 class OPTReader(AbstractFileReader):
     """
     Class to handle OPT  and XML files from Axopatch
@@ -163,9 +185,7 @@ class OPTReader(AbstractFileReader):
         """
         Parent AbstractFileReader class initializations
         """
-        super().__init__()
 
-    ## TODO: .opt file 1D array. What values?
     def _read_opt(self, filename):
         """
 
@@ -174,7 +194,6 @@ class OPTReader(AbstractFileReader):
         """
         # is opt file binary?
         file = np.fromfile(filename, dtype="float32")
-
 
     def _read_xml(self, filename):
         """
@@ -185,7 +204,6 @@ class OPTReader(AbstractFileReader):
         tree = ET.parse(filename)
         root = tree.getroot()
 
-        ## TODO: Extract "time stamp" from .xml ?
         timing_shift_raw = root.find("timestamp")
         if timing_shift_raw is not None:
             timing_shift = float(timing_shift_raw.text)
@@ -194,20 +212,19 @@ class OPTReader(AbstractFileReader):
         return timing_shift
 
 
-
-
 if __name__ == "__main__":
     # print(EDHReader.ext)
     e = EDHReader()
-    meta, current, voltage = e.read("/Users/dinaraboyko/grad_school/wanunu_lab/data/cytKWT/8_6_2024/4_channel_2MGdmCl_buffer_cytK_P6_106_CH003/4_channel_2MGdmCl_buffer_cytK_P6.edh", voltage_compress=True)
+    meta, current, voltage = e.read("/Users/dinaraboyko/grad_school/wanunu_lab/data/"
+                                    "cytKWT/8_6_2024/4_channel_2MGdmCl_buffer_cytK_P6_106_CH003/"
+                                    "4_channel_2MGdmCl_buffer_cytK_P6.edh", voltage_compress=True)
     # import matplotlib.pyplot as plt
     # plt.plot(current[::100])
     # plt.waitforbuttonpress()
     # e.read("C:/Users/alito/EDR/Q402m1_SBead/Q402m1_SBead.edh")
 
-
     ###################################
-    ##  Explore XML files
+    #  Explore XML files
     ####################################
     tree = ET.parse("../../test_data/TOKW1_DPhPC_Chol_Hexane/B090524SR_100kHz__000.xml")
     root = tree.getroot()
@@ -252,9 +269,6 @@ if __name__ == "__main__":
     for segment in timing_data:
         print(segment)
 
-    opt_file = np.fromfile("../../test_data/TOKW1_DPhPC_Chol_Hexane/B090524SR_100kHz__000.opt", dtype="float32")
+    opt_file = np.fromfile("../../test_data/TOKW1_DPhPC_Chol_Hexane/"
+                           "B090524SR_100kHz__000.opt", dtype="float32")
     print(opt_file[1:10])
-
-
-
-

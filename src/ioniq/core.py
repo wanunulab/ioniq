@@ -1,16 +1,20 @@
-#
-#			adaptation from from "core.py" by Jacob Scheriber
-#           https://github.com/jmschrei/PyPore
-# This holds the core data types which may be abstracted in many
-# different applications.
+#!/usr/bin/env python
+"""
+    adaptation from "core.py" by Jacob Scheriber
+    https://github.com/jmschrei/PyPore
+This holds the core data types which may be abstracted in
+many different applications.
+"""
 
-import numpy as np
+
 import re
 import json
 from contextlib import contextmanager
 from itertools import chain
-from typing import Type, TypeVar
+# from typing import Type, TypeVar
+from typing import TypeVar
 from functools import cached_property
+import numpy as np
 #from IonTrace.Parsers.parsers import AnyParser
 
 AnySegment = TypeVar("AnySegment", bound="AbstractSegmentTree")
@@ -27,7 +31,7 @@ class AbstractSegmentTree(object):
         """
         Initialize the segment
         """
-        ## TODO: check if unique_features should be addded:
+        # TODO: check if unique_features should be added:
         self.unique_features = {}
         self.parent: AnySegment | None = None
         self.children: list[AnySegment] = []
@@ -50,16 +54,18 @@ class AbstractSegmentTree(object):
         :return: True if no errors were encountered, else false
         """
         try:
-            ## TODO: get the features from parsers (test)
+            # TODO: get the features from parsers (test)
             required_parent_attributes = parser.get_required_parent_attributes()
 
             def _parse_one(target: AnySegment) -> None:
                 """
                 Called if at_child_rank_ is passed to "parse" method
                 """
-                attributes = dict([(attr_name, target.get_feature(attr_name)) for attr_name in required_parent_attributes])
+                attributes = {[(attr_name, target.get_feature(attr_name))
+                               for attr_name in required_parent_attributes]}
                 # if "sampling_freq" in required_parent_attributes:
-                    # attributes["sampling_freq"]=self.climb_to_rank('file').unique_features["sampling_freq"]
+                #     attributes["sampling_freq"]=\
+                #        self.climb_to_rank('file').unique_features["sampling_freq"]
                 parser_results = parser.parse(**attributes, **kwargs)
                 children = [MetaSegment(start+self.start, end+self.start, parent=target,
                                         rank=newrank, unique_features=unique_features)
@@ -73,8 +79,8 @@ class AbstractSegmentTree(object):
                 targets = self.traverse_to_rank(at_child_rank)
                 for target in targets:
                     _parse_one(target)
-        except Exception as e:
-            raise e
+        except Exception as error:
+            raise error
 
         return True
 
@@ -111,7 +117,7 @@ class AbstractSegmentTree(object):
             return self.end - self.parent.start
         return self.end
 
-    ## TODO: When data is avilable, check the output types and fix typing
+    # TODO: When data is avilable, check the output types and fix typing
 
     @cached_property
     def slice(self) -> np.ndarray:
@@ -144,8 +150,7 @@ class AbstractSegmentTree(object):
         """
         if self.parent is not None:
             return self.parent.get_top_parent(self)
-        else:
-            return self
+        return self
 
     def climb_to_rank(self, rank: str) -> AnySegment | None:
         """
@@ -154,7 +159,8 @@ class AbstractSegmentTree(object):
         """
         if self.rank == rank:
             return self
-        elif self.parent != None:
+        # elif self.parent != None:
+        elif self.parent is not None:
             return self.parent.climb_to_rank(rank)
         else:
             return None
@@ -175,21 +181,19 @@ class AbstractSegmentTree(object):
         Or add children with no check
         """
         if self.start is not None and self.end is not None:
-        #if self.start != None and self.end != None:
-            try:
-                assert all([self.start <= child.start < child.end <= self.end for child in children])
-            except AssertionError:
-                print(f"One or more children have positions outside the parent's range ({self.start}, {self.end}).")
+        # if self.start != None and self.end != None:
+            assert all([self.start <= child.start < child.end <= self.end for child in children]), \
+                f"Children's positions are outside the parent's range ({self.start}, {self.end})."
         else:
 
-            assert all([child.n > 0 for child in children]), f"One or more children have a segment length <= 0."
+            assert all([child.n > 0 for child in children]), "Children segment length <= 0."
 
         # Sort the list of children
         temp_children = sorted(self.children + children, key=lambda x: (x.start, x.end))
-        try:
-            assert all([child0.end <= child1.start for child0, child1 in zip(temp_children[:-1], temp_children[1:])])
-        except AssertionError:
-            print("One or more children segments overlap with consecutive segments.")
+
+        assert all([child0.end <= child1.start for child0, child1 in
+                    zip(temp_children[:-1], temp_children[1:])]), \
+            "Children segments overlap with consecutive segments."
 
         self._set_children_nocheck(temp_children)
 
@@ -224,10 +228,12 @@ class AbstractSegmentTree(object):
 # class ParsableMixin:
 #     def parse(self,parser,newrank:str,**kwargs)->bool:
 #         required_parent_attributes=parser.get_required_parent_attributes()
-#         attributes=dict([(attr_name, getattr(self,attr_name,None)) for attr_name in required_parent_attributes])
+#         attributes=dict([(attr_name, getattr(self,attr_name,None))
+#                          for attr_name in required_parent_attributes])
 #         self.clear_children()
 #         parser_results=parser.parse(**attributes,**kwargs)
-#         children = [MetaSegment(start,end,parent=self,rank=newrank,unique_features=unique_features)
+#         children = [MetaSegment(start,end,parent=self,rank=newrank,
+#                                 unique_features=unique_features)
 #                     for start,end,unique_features in parser_results]
 #         self.add_children(children)
 
@@ -285,8 +291,8 @@ class MetaSegment(AbstractSegmentTree):
         :return: current
         """
         try:
-            c = self.climb_to_rank('file').current[self.start:self.end]
-            return c
+            cur = self.climb_to_rank('file').current[self.start:self.end]
+            return cur
         except:
             return None
 
@@ -296,18 +302,42 @@ class MetaSegment(AbstractSegmentTree):
     #########################################################
     @property
     def mean(self):
+        """
+        Calculate the mean of the current array.
+
+        :return: Mean value of the current array.
+        :rtype: float
+        """
         return np.mean(self.current)
 
     @property
     def std(self):
+        """
+        Calculate the standard deviation of the current array.
+
+        :return: Standard deviation of the current array.
+        :rtype: float
+        """
         return np.std(self.current)
 
     @property
     def min(self):
+        """
+        Calculate the minimum value of the current array.
+
+        :return: Minimum value of the current array.
+        :rtype: float
+        """
         return np.min(self.current)
 
     @property
     def max(self):
+        """
+        Calculate the maximum value of the current array.
+
+        :return: Maximum value of the current array.
+        :rtype: float
+        """
         return np.max(self.current)
 
     @property
@@ -536,10 +566,10 @@ class Segment(AbstractSegmentTree):
         #     self.end /= sampling_freq
         #     self.duration /= sampling_freq
         with ignored(AttributeError):
-            #if self.start is not None:
+            # if self.start is not None:
             if self.start != None:
                 self.start /= sampling_freq
-            #if self.end is not None:
+            # if self.end is not None:
             if self.end != None:
                 self.end /= sampling_freq
             if hasattr(self, 'duration') and self.duration is not None:
@@ -548,22 +578,52 @@ class Segment(AbstractSegmentTree):
 
     @property
     def mean(self):
+        """
+        Calculate the mean of the current array.
+
+        :return: Mean value of the current array.
+        :rtype: float
+        """
         return np.mean(self.current)
 
     @property
     def std(self):
+        """
+        Calculate the standard deviation of the current array.
+
+        :return: Standard deviation of the current array.
+        :rtype: float
+        """
         return np.std(self.current)
 
     @property
     def min(self):
+        """
+        Calculate the minimum value of the current array.
+
+        :return: Minimum value of the current array.
+        :rtype: float
+        """
         return np.min(self.current)
 
     @property
     def max(self):
+        """
+        Calculate the maximum value of the current array.
+
+        :return: Maximum value of the current array.
+        :rtype: float
+        """
         return np.max(self.current)
 
     @property
     def n(self):
+        """
+        Get the number of elements in the current array.
+
+        :return: Number of elements in the current array.
+        :rtype: int
+        """
         return len(self.current)
 
     @classmethod
@@ -574,7 +634,6 @@ class Segment(AbstractSegmentTree):
         """
 
         assert filename or json and not (filename and json)
-        import re
 
         if filename:
             with open(filename, 'r') as infile:
