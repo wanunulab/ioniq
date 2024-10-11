@@ -1,0 +1,16 @@
+EDH Version: 2.0
+
+Elements eNPR
+Channels: 1
+
+Data header file
+
+Amplifier Setup
+Range: 200 nA
+Sampling frequency (SR): 200 kHz
+Final Bandwidth: SR/2 (no filter)
+Oversampling x4: disabled
+
+Acquisition start time: 26/06/2024 17:57:44.242
+
+Active channels: 1

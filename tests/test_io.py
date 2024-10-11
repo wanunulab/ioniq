@@ -13,9 +13,7 @@ from ioniq.io import EDHReader
 # Test EDH reader
 @pytest.fixture
 def path_to_file():
-	return """/Users/dinaraboyko/grad_school/wanunu_lab/data/ \
-			cytKWT/8_6_2024/4_channel_2MGdmCl_buffer_cytK_P6_106_CH003/ \
-			4_channel_2MGdmCl_buffer_cytK_P6.edh"""
+	return "data/8e7_80n01M1_5pctSorbitol_IV/8e7_80n01M1_5pctSorbitol_IV.edh"
 
 
 def test_edh_reader(path_to_file):

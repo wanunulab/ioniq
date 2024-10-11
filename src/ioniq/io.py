@@ -215,9 +215,9 @@ class OPTReader(AbstractFileReader):
 if __name__ == "__main__":
     # print(EDHReader.ext)
     e = EDHReader()
-    meta, current, voltage = e.read("/Users/dinaraboyko/grad_school/wanunu_lab/data/"
-                                    "cytKWT/8_6_2024/4_channel_2MGdmCl_buffer_cytK_P6_106_CH003/"
-                                    "4_channel_2MGdmCl_buffer_cytK_P6.edh", voltage_compress=True)
+    meta, current, voltage = e.read("../../tests/data/8e7_80n01M1_5pctSorbitol_IV/"
+                                    "8e7_80n01M1_5pctSorbitol_IV.edh", voltage_compress=True)
+    print(len(voltage))
     # import matplotlib.pyplot as plt
     # plt.plot(current[::100])
     # plt.waitforbuttonpress()
@@ -226,49 +226,49 @@ if __name__ == "__main__":
     ###################################
     #  Explore XML files
     ####################################
-    tree = ET.parse("../../test_data/TOKW1_DPhPC_Chol_Hexane/B090524SR_100kHz__000.xml")
-    root = tree.getroot()
-
-    timing_data = []
-    sweep_data = []
-
-    # timestamp and alignment inf from XML
-    for timestamp in root.findall('timestamp'):
-        wall_clock = float(timestamp.get('wall_clock'))
-        msec = int(timestamp.get('msec'))
-
-        # sweep information
-        sweep = timestamp.find('sweep')
-        if sweep is not None:
-            sweep_number = int(sweep.get('N'))
-            sweep_data.append({'sweep': sweep_number, 'time': wall_clock + msec / 1000})
-
-        # HWtiming_cap_step inside timestamp
-        hw_timing = timestamp.find('HWtiming_cap_step')
-        if hw_timing is not None:
-            # time_alignment_marks
-            alignment_segments = hw_timing.find('time_alignment_marks')
-            if alignment_segments is not None:
-                segments = alignment_segments.findall('time_alignment_segment')
-
-                # Extract information from each time_alignment_segment
-                for segment in segments:
-                    num_samples = int(segment.get('number_samples'))
-                    voltage_mV = float(segment.get('voltage_mV'))
-                    time_ms = float(segment.get('time_ms'))
-
-                    # Store the segment information in the list
-                    timing_data.append({
-                        'samples': num_samples,
-                        'voltage': voltage_mV,
-                        'time_ms': time_ms
-                    })
-
-    # Output the results
-    print(f"Number of alignment segments: {len(timing_data)}")
-    for segment in timing_data:
-        print(segment)
-
-    opt_file = np.fromfile("../../test_data/TOKW1_DPhPC_Chol_Hexane/"
-                           "B090524SR_100kHz__000.opt", dtype="float32")
-    print(opt_file[1:10])
+    # tree = ET.parse("../../test_data/TOKW1_DPhPC_Chol_Hexane/B090524SR_100kHz__000.xml")
+    # root = tree.getroot()
+    #
+    # timing_data = []
+    # sweep_data = []
+    #
+    # # timestamp and alignment inf from XML
+    # for timestamp in root.findall('timestamp'):
+    #     wall_clock = float(timestamp.get('wall_clock'))
+    #     msec = int(timestamp.get('msec'))
+    #
+    #     # sweep information
+    #     sweep = timestamp.find('sweep')
+    #     if sweep is not None:
+    #         sweep_number = int(sweep.get('N'))
+    #         sweep_data.append({'sweep': sweep_number, 'time': wall_clock + msec / 1000})
+    #
+    #     # HWtiming_cap_step inside timestamp
+    #     hw_timing = timestamp.find('HWtiming_cap_step')
+    #     if hw_timing is not None:
+    #         # time_alignment_marks
+    #         alignment_segments = hw_timing.find('time_alignment_marks')
+    #         if alignment_segments is not None:
+    #             segments = alignment_segments.findall('time_alignment_segment')
+    #
+    #             # Extract information from each time_alignment_segment
+    #             for segment in segments:
+    #                 num_samples = int(segment.get('number_samples'))
+    #                 voltage_mV = float(segment.get('voltage_mV'))
+    #                 time_ms = float(segment.get('time_ms'))
+    #
+    #                 # Store the segment information in the list
+    #                 timing_data.append({
+    #                     'samples': num_samples,
+    #                     'voltage': voltage_mV,
+    #                     'time_ms': time_ms
+    #                 })
+    #
+    # # Output the results
+    # print(f"Number of alignment segments: {len(timing_data)}")
+    # for segment in timing_data:
+    #     print(segment)
+    #
+    # opt_file = np.fromfile("../../test_data/TOKW1_DPhPC_Chol_Hexane/"
+    #                        "B090524SR_100kHz__000.opt", dtype="float32")
+    # print(opt_file[1:10])
