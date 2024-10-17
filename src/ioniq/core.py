@@ -1,16 +1,20 @@
-#
-#			adaptation from from "core.py" by Jacob Scheriber
-#           https://github.com/jmschrei/PyPore
-# This holds the core data types which may be abstracted in many
-# different applications.
+#!/usr/bin/env python
+"""
+    adaptation from "core.py" by Jacob Scheriber
+    https://github.com/jmschrei/PyPore
+This holds the core data types which may be abstracted in
+many different applications.
+"""
 
-import numpy as np
+
 import re
 import json
 from contextlib import contextmanager
 from itertools import chain
-from typing import Type, TypeVar
+# from typing import Type, TypeVar
+from typing import TypeVar
 from functools import cached_property
+import numpy as np
 #from IonTrace.Parsers.parsers import AnyParser
 
 AnySegment = TypeVar("AnySegment", bound="AbstractSegmentTree")
@@ -27,9 +31,11 @@ class AbstractSegmentTree(object):
         """
         Initialize the segment
         """
+        # TODO: check if unique_features should be added:
+        self.unique_features = {}
         self.parent: AnySegment | None = None
         self.children: list[AnySegment] = []
-        
+
         # # self._slice_relative: Type(np.s_)= np.s_[::]
         self.start: int | None = 0
         self.end: int | None = None
@@ -48,33 +54,36 @@ class AbstractSegmentTree(object):
         :return: True if no errors were encountered, else false
         """
         try:
+            # TODO: get the features from parsers (test)
             required_parent_attributes = parser.get_required_parent_attributes()
 
             def _parse_one(target: AnySegment) -> None:
                 """
                 Called if at_child_rank_ is passed to "parse" method
                 """
-                attributes = dict([(attr_name, target.get_feature(attr_name)) for attr_name in required_parent_attributes])
+                attributes = {[(attr_name, target.get_feature(attr_name))
+                               for attr_name in required_parent_attributes]}
                 # if "sampling_freq" in required_parent_attributes:
-                    # attributes["sampling_freq"]=self.climb_to_rank('file').unique_features["sampling_freq"]
+                #     attributes["sampling_freq"]=\
+                #        self.climb_to_rank('file').unique_features["sampling_freq"]
                 parser_results = parser.parse(**attributes, **kwargs)
                 children = [MetaSegment(start+self.start, end+self.start, parent=target,
                                         rank=newrank, unique_features=unique_features)
                                         for start, end, unique_features in parser_results]
                 target.clear_children()
                 target.add_children(children)
-                
+
             if at_child_rank is None or at_child_rank == self.rank:
                 _parse_one(self)
             else:
                 targets = self.traverse_to_rank(at_child_rank)
                 for target in targets:
                     _parse_one(target)
-        except Exception as e:
-            raise e
-        
+        except Exception as error:
+            raise error
+
         return True
-    
+
     def get_feature(self, name: str):
         """
         Gets the 'name' feature of the current segment or its parent
@@ -85,9 +94,9 @@ class AbstractSegmentTree(object):
             return getattr(self, name)
         elif self.parent is not None:
             return self.parent.get_feature(name)
-        else: 
+        else:
             return None
-        
+
     @cached_property
     def relative_start(self) -> int:
         """
@@ -133,7 +142,7 @@ class AbstractSegmentTree(object):
         :return: len(segment)
         """
         return self.end-self.start
-    
+
     def get_top_parent(self) -> AnySegment:
         """
         Recursively go up and find top most parent
@@ -141,9 +150,8 @@ class AbstractSegmentTree(object):
         """
         if self.parent is not None:
             return self.parent.get_top_parent(self)
-        else:
-            return self
-        
+        return self
+
     def climb_to_rank(self, rank: str) -> AnySegment | None:
         """
         Go up and find the segment with the specified rank
@@ -151,17 +159,18 @@ class AbstractSegmentTree(object):
         """
         if self.rank == rank:
             return self
+        # elif self.parent != None:
         elif self.parent is not None:
             return self.parent.climb_to_rank(rank)
         else:
             return None
-        
+
     def add_child(self, child: AnySegment) -> None:
         """
         Add a single child
         """
         self.add_children([child])
-            
+
     def add_children(self, children: list[AnySegment]) -> None:
         """
         Add multiple children if:
@@ -172,22 +181,28 @@ class AbstractSegmentTree(object):
         Or add children with no check
         """
         if self.start is not None and self.end is not None:
-            assert all([self.start <= child.start < child.end <= self.end for child in children])
+        # if self.start != None and self.end != None:
+            assert all([self.start <= child.start < child.end <= self.end for child in children]), \
+                f"Children's positions are outside the parent's range ({self.start}, {self.end})."
         else:
-            assert all([child.n > 0 for child in children])
-        # Sort the list of children
-        temp_children = sorted(self.children+children, key=lambda x: (x.start, x.end))
-        assert all([child0.end <= child1.start for child0, child1 in zip(temp_children[:-1], temp_children[1:])])
 
-        # No check adding
+            assert all([child.n > 0 for child in children]), "Children segment length <= 0."
+
+        # Sort the list of children
+        temp_children = sorted(self.children + children, key=lambda x: (x.start, x.end))
+
+        assert all([child0.end <= child1.start for child0, child1 in
+                    zip(temp_children[:-1], temp_children[1:])]), \
+            "Children segments overlap with consecutive segments."
+
         self._set_children_nocheck(temp_children)
-        
+
     def _set_children_nocheck(self, children: list[AnySegment]) -> None:
         """
         Called in add_children method to add children with no check
         """
         self.children = children
-        
+
     def clear_children(self):
         """
         Clear the list of children
@@ -206,24 +221,26 @@ class AbstractSegmentTree(object):
         else:
             if not self.children:
                 return []
-            else: 
+            else:
                 return list(chain(*[child.traverse_to_rank(rank) for child in self.children]))
 
 
 # class ParsableMixin:
 #     def parse(self,parser,newrank:str,**kwargs)->bool:
 #         required_parent_attributes=parser.get_required_parent_attributes()
-#         attributes=dict([(attr_name, getattr(self,attr_name,None)) for attr_name in required_parent_attributes])
+#         attributes=dict([(attr_name, getattr(self,attr_name,None))
+#                          for attr_name in required_parent_attributes])
 #         self.clear_children()
 #         parser_results=parser.parse(**attributes,**kwargs)
-#         children = [MetaSegment(start,end,parent=self,rank=newrank,unique_features=unique_features)
+#         children = [MetaSegment(start,end,parent=self,rank=newrank,
+#                                 unique_features=unique_features)
 #                     for start,end,unique_features in parser_results]
 #         self.add_children(children)
-            
-  
+
+
 class MetaSegment(AbstractSegmentTree):
     """
-    The metadata on an abstract segment of ionic current. All information about a segment can be 
+    The metadata on an abstract segment of ionic current. All information about a segment can be
     loaded, without the expectation of the array of floats.
     """
     # Limit attributes to "unique_features"
@@ -274,8 +291,8 @@ class MetaSegment(AbstractSegmentTree):
         :return: current
         """
         try:
-            c = self.climb_to_rank('file').current[self.start:self.end]
-            return c
+            cur = self.climb_to_rank('file').current[self.start:self.end]
+            return cur
         except:
             return None
 
@@ -285,20 +302,44 @@ class MetaSegment(AbstractSegmentTree):
     #########################################################
     @property
     def mean(self):
+        """
+        Calculate the mean of the current array.
+
+        :return: Mean value of the current array.
+        :rtype: float
+        """
         return np.mean(self.current)
 
     @property
     def std(self):
+        """
+        Calculate the standard deviation of the current array.
+
+        :return: Standard deviation of the current array.
+        :rtype: float
+        """
         return np.std(self.current)
 
     @property
     def min(self):
+        """
+        Calculate the minimum value of the current array.
+
+        :return: Minimum value of the current array.
+        :rtype: float
+        """
         return np.min(self.current)
 
     @property
     def max(self):
+        """
+        Calculate the maximum value of the current array.
+
+        :return: Maximum value of the current array.
+        :rtype: float
+        """
         return np.max(self.current)
-    
+
     @property
     def time(self):
         """
@@ -306,7 +347,7 @@ class MetaSegment(AbstractSegmentTree):
         :return: time
         """
         return self.climb_to_rank("file").time[self.start:self.end]
-    
+
     @property
     def duration(self) -> float:
         """
@@ -314,7 +355,7 @@ class MetaSegment(AbstractSegmentTree):
         :return: duration
         """
         return self.time[-1]-self.time[0]
-    
+
     def __repr__(self) -> str:
         """
         The representation is a JSON.
@@ -335,7 +376,7 @@ class MetaSegment(AbstractSegmentTree):
         """
 
         del self
-    
+
     def to_meta(self):
         """
         Kept to allow for error handling, but since it's already a metasegment
@@ -348,13 +389,28 @@ class MetaSegment(AbstractSegmentTree):
         Return a dict representation of the metadata, usually used prior to
         converting the dict to a JSON.
         """
+        # if hasattr(self, 'keys'):
+        #     keys = self.keys
+        # else:
+        #     keys = ['mean', 'std', 'min', 'max', 'start', 'end', 'duration']
+        # dict_meta = {i: getattr(self, i) for i in keys if hasattr(self, i)}
+        # dict_meta['name'] = self.__class__.__name__
+        # return dict_meta
         if hasattr(self, 'keys'):
             keys = self.keys
         else:
             keys = ['mean', 'std', 'min', 'max', 'start', 'end', 'duration']
-        dict_meta = {i: getattr(self, i) for i in keys if hasattr(self, i)}
+        dict_meta = {i: self._convert_if_numpy(getattr(self, i)) for i in keys if hasattr(self, i)}
         dict_meta['name'] = self.__class__.__name__
         return dict_meta
+
+    def _convert_if_numpy(self, obj):
+        """
+        Convert numpy data types to native Python types.
+        """
+        if isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+        return obj
 
     def to_json(self, filename=None):
         """
@@ -362,17 +418,22 @@ class MetaSegment(AbstractSegmentTree):
         metadata.
         """
 
-        _json = json.dumps(self.to_dict(), indent=4, separators=(',', ' : '))
+        # _json = json.dumps(self.to_dict(), indent=4, separators=(',', ' : '))
+        # if filename:
+        #     with open(filename, 'w') as outfile:
+        #         outfile.write(_json)
+        # return _json
         if filename:
-            with open(filename, 'w') as outfile:
-                outfile.write(_json)
+            _json = json.dumps(self.to_dict(), indent=4, separators=(',', ' : '))
+            return _json
+        _json = json.dumps(self.to_dict(), indent=4, separators=(',', ' : '))
         return _json
 
     @classmethod
     def from_json(self, filename=None, in_json=None):
         """
-        Read in a metasegment from a JSON and return a metasegment object. 
-        Either pass in a file which has a segment stored, or an actual JSON 
+        Read in a metasegment from a JSON and return a metasegment object.
+        Either pass in a file which has a segment stored, or an actual JSON
         object.
         """
 
@@ -391,22 +452,22 @@ class MetaSegment(AbstractSegmentTree):
 class Segment(AbstractSegmentTree):
     """
     A segment of ionic current, and methods relevant for collecting metadata. The ionic current is
-    expected to be passed as a numpy array of floats. Metadata methods (mean, std..) are decorated 
-    as properties to reduce overall computational time, making them calculated on the fly rather 
+    expected to be passed as a numpy array of floats. Metadata methods (mean, std..) are decorated
+    as properties to reduce overall computational time, making them calculated on the fly rather
     than during analysis.
     """
 
     def __init__(self, current, **kwargs):
         """
-        The segment must have a list of ionic current, of which it stores some statistics about. 
-        It may also take in as many keyword arguments as needed, such as start time or duration 
-        if already known. Cannot override statistical measurements. 
+        The segment must have a list of ionic current, of which it stores some statistics about.
+        It may also take in as many keyword arguments as needed, such as start time or duration
+        if already known. Cannot override statistical measurements.
         """
         super().__init__()
         self.current = current
         for key, value in kwargs.items():
             with ignored(AttributeError):
-                setattr(self, key, value)    
+                setattr(self, key, value)
 
     def __repr__(self):
         """
@@ -427,24 +488,45 @@ class Segment(AbstractSegmentTree):
         Return a dict representation of the metadata, usually used prior to
         converting the dict to a JSON.
         """
+        # if hasattr(self, 'keys'):
+        #     keys = self.keys
+        # else:
+        #     keys = ['mean', 'std', 'min', 'max', 'start', 'end', 'duration']
+        # d = {i: getattr(self, i) for i in keys if hasattr(self, i)}
+        # d['name'] = self.__class__.__name__
+        # return d
         if hasattr(self, 'keys'):
             keys = self.keys
         else:
             keys = ['mean', 'std', 'min', 'max', 'start', 'end', 'duration']
-        d = {i: getattr(self, i) for i in keys if hasattr(self, i)}
-        d['name'] = self.__class__.__name__
-        return d
+        dict_meta = {i: self._convert_if_numpy(getattr(self, i)) for i in keys if hasattr(self, i)}
+        dict_meta['name'] = self.__class__.__name__
+        return dict_meta
+
+    def _convert_if_numpy(self, obj):
+        """
+        Convert numpy data types to regular Python type.
+        """
+        if isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+        return obj
 
     def to_json(self, filename=None):
+        ## TODO: change this function caausing the error!
         """
         Return a JSON representation of this, by reporting the important
         metadata.
         """
-
-        _json = json.dumps(self.to_dict(), indent=4, separators=(',', ' : '))
+        #
+        # _json = json.dumps(self.to_dict(), indent=4, separators=(',', ' : '))
+        # if filename:
+        #     with open(filename, 'w') as outfile:
+        #         outfile.write(_json)
+        # return _json
         if filename:
-            with open(filename, 'w') as outfile:
-                outfile.write(_json)
+            _json = json.dumps(self.to_dict(), indent=4, separators=(',', ' : '))
+            return _json
+        _json = json.dumps(self.to_dict(), indent=4, separators=(',', ' : '))
         return _json
 
     def to_meta(self):
@@ -463,7 +545,7 @@ class Segment(AbstractSegmentTree):
     def delete(self):
         """
         Deleting this segment requires deleting its reference to the ionic
-        current array, and then deleting itself. 
+        current array, and then deleting itself.
         """
 
         with ignored(AttributeError):
@@ -476,29 +558,72 @@ class Segment(AbstractSegmentTree):
         Rescale all of the values to go from samples to seconds.
         """
 
+        # Changed the code here for the test units:
+        # When set to None error occurs
+
+        # with ignored(AttributeError):
+        #     self.start /= sampling_freq
+        #     self.end /= sampling_freq
+        #     self.duration /= sampling_freq
         with ignored(AttributeError):
-            self.start /= sampling_freq
-            self.end /= sampling_freq
-            self.duration /= sampling_freq
+            # if self.start is not None:
+            if self.start != None:
+                self.start /= sampling_freq
+            # if self.end is not None:
+            if self.end != None:
+                self.end /= sampling_freq
+            if hasattr(self, 'duration') and self.duration is not None:
+
+                self.duration /= sampling_freq
 
     @property
     def mean(self):
+        """
+        Calculate the mean of the current array.
+
+        :return: Mean value of the current array.
+        :rtype: float
+        """
         return np.mean(self.current)
-    
+
     @property
     def std(self):
+        """
+        Calculate the standard deviation of the current array.
+
+        :return: Standard deviation of the current array.
+        :rtype: float
+        """
         return np.std(self.current)
 
     @property
     def min(self):
+        """
+        Calculate the minimum value of the current array.
+
+        :return: Minimum value of the current array.
+        :rtype: float
+        """
         return np.min(self.current)
 
     @property
     def max(self):
+        """
+        Calculate the maximum value of the current array.
+
+        :return: Maximum value of the current array.
+        :rtype: float
+        """
         return np.max(self.current)
 
     @property
     def n(self):
+        """
+        Get the number of elements in the current array.
+
+        :return: Number of elements in the current array.
+        :rtype: int
+        """
         return len(self.current)
 
     @classmethod
@@ -509,7 +634,6 @@ class Segment(AbstractSegmentTree):
         """
 
         assert filename or json and not (filename and json)
-        import re
 
         if filename:
             with open(filename, 'r') as infile:
