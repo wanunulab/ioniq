@@ -1,11 +1,13 @@
+#!/usr/bin/env python
 """
 DataTypes module
 """
 
-from ioniq.core import *
-from ioniq.utils import Singleton
 import datetime
 import numpy as np
+from ioniq.core import MetaSegment, AnySegment, Segment
+from ioniq.utils import Singleton
+
 
 class SessionFileManager(MetaSegment, metaclass=Singleton):
     """
@@ -45,7 +47,7 @@ class SessionFileManager(MetaSegment, metaclass=Singleton):
         Remove a child from the children list
         """
         if child in self.children:
-            self.children.remove(child) 
+            self.children.remove(child)
 
 
 class TraceFile(Segment):
@@ -72,22 +74,30 @@ class TraceFile(Segment):
         # If voltage data exists, create MetaSegment instance for each voltage step
         if self.voltage is not None:
             self.add_children([MetaSegment(start, end, parent=self, rank="vstep",
-                                           unique_features={"voltage": v}) for (start, end), v in voltage])
+                                           unique_features={"voltage": v})
+                               for (start, end), v in voltage])
         if self.parent is not None:
             self.parent.add_child(self)
 
-    def plot(self, rank, ax, downsample_per_rank, color_per_rank):
+    def plot(self, rank, axes, downsample_per_rank, color_per_rank):
+        """
+        Method for plotting
+        """
         pass
-    
+
     def delete(self):
+        """
+        Delete the current object, removing it from its parent
+
+        """
         try:
             if self.parent is not None:
                 self.parent._remove(self)
-        except Exception as e:
-            print(e)
+        except Exception as error:
+            print(error)
         super().delete()
-        
-        
+
+
 # class RoiSegment(MetaSegment):
 #     def __init__(self, **kwargs):
 #         super().__init__(**kwargs)
@@ -95,11 +105,12 @@ class TraceFile(Segment):
 #         if hasattr(self,'parent'):
 #             if hasattr(self.parent,'sampling_freq'):
 #                 self.sampling_freq=self.parent.sampling_freq
-    
+
 #     def get_bounds(self,seconds=True):
 #         if seconds and isinstance(self.start,int):
 #             return(self.start/self.sampling_freq,self.end/self.sampling_freq)
-#         if (seconds and isinstance(self.start,float)) or (not seconds and isinstance(self.start,int)):
+#         if (seconds and isinstance(self.start,float)) or
+#             (not seconds and isinstance(self.start,int)):
 #             return(self.start,self.end)
 #         if not seconds and isinstance(self.start,float):
 #             return(int(self.start*self.sampling_freq),int(self.end*self.sampling_freq))

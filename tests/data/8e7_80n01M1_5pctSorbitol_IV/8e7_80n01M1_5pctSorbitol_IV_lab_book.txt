@@ -1,0 +1,14 @@
+_Session lab book file: C:/Users/Ali/EDR/Labbook/labs_26-06-2024_17-53-54.txt
+_Started recording: Wed Jun 26 17:57:44 2024
+_Lab book notes:
+_Range: 200 nA
+_Sampling frequency (SR): 200 kHz
+_Final Bandwidth: SR/2 (no filter)
+_Oversampling x4: disabled
+17:58:06.056, 00:00:21.781, I/V graph, Channel: 1, Conductance: 0.212604 [uS], Current Offset: 0.257003 [nA], Reverse Potential: -1.20883 [mV]
+17:58:07.921, 00:00:23.646, I/V graph, Channel: 1, Conductance: 0.212431 [uS], Current Offset: 0.227019 [nA], Reverse Potential: -1.06867 [mV]
+17:58:08.695, 00:00:24.420, I/V graph, Channel: 1, Conductance: 0.21245 [uS], Current Offset: 0.224464 [nA], Reverse Potential: -1.05655 [mV]
+17:58:13.513, 00:00:29.238, I/V graph, Channel: 1, Conductance: 0.212439 [uS], Current Offset: 0.248819 [nA], Reverse Potential: -1.17125 [mV]
+17:58:17.888, 00:00:33.613, I/V graph, Channel: 1, Conductance: 0.212455 [uS], Current Offset: 0.26895 [nA], Reverse Potential: -1.26591 [mV]
+17:58:27.200, 00:00:42.925, I/V graph, Channel: 1, Conductance: 0.212461 [uS], Current Offset: 0.297307 [nA], Reverse Potential: -1.39935 [mV]
+17:58:27.456, 00:00:43.181, I/V graph, Channel: 1, Conductance: 0.212429 [uS], Current Offset: 0.305313 [nA], Reverse Potential: -1.43724 [mV]
