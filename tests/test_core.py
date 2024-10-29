@@ -1,10 +1,8 @@
 """
 Unit test for core.py
 """
-import sys
-from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent.parent / 'src'))
+
 import pytest
 import numpy as np
 from ioniq.core import AbstractSegmentTree, MetaSegment, Segment
@@ -141,6 +139,7 @@ def test_to_json(segment):
     assert '"std"' in json_str
     assert '"min"' in json_str
     assert '"max"' in json_str
+
 
 ## TODO: Might need to change core.py. Parsing json using loads
 # def test_from_json(segment):

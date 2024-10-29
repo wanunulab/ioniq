@@ -1,14 +1,11 @@
 """
 Test module for parsers.py
 """
-import sys
-from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent.parent / 'src'))
+import pyximport
 import numpy as np
 import pytest
 from ioniq.parsers import SpikeParser
-import pyximport
 pyximport.install(setup_args={'include_dirs': np.get_include()})
 
 # Simple data for test cases
@@ -44,6 +41,7 @@ def test_spike_parser_parse(spike_parser):
 		assert 'idx_rel' in unique_features
 		assert 'dwell' in unique_features
 		assert 'dt' in unique_features
+
 
 
 
