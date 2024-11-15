@@ -21,3 +21,6 @@ dependencies = [
   "platformdirs~=4.2.2",
   "pyabf~=2.3.8"
 ]
+
+[project.optional-dependencies]
+panel = ["panel=1.5.4"]
