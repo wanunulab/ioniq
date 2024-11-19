@@ -4,6 +4,9 @@ Utility functions and classes for internal and external use
 """
 
 import numpy as np
+from dataclasses import dataclass, field
+import scipy.signal as signal
+from typing import Literal
 
 
 class Singleton(type):
@@ -162,3 +165,44 @@ def _si_multiplier_unit(unitstr: str) -> float:
         return _get_prefix_val()[unitstr]
 
     raise ValueError(f"Unit prefix is not known: {unitstr}, see available:\n{_get_prefix_val()}")
+
+
+@dataclass
+class Filter:
+    cutoff_frequency: float
+    filter_type: Literal["lowpass", "highpass", "bandpass", "bandstop"]
+    order: int = field(default=2)
+    bidirectional: bool = True
+    sampling_frequency: float = None
+
+    def __post_init__(self):
+
+        if self.order <= 1:
+            raise ValueError("Order must be greater than 1.")
+
+        if self.sampling_frequency:
+            self._calculate_sos()
+
+    def _calculate_sos(self):
+
+        nyquist = 0.5 * self.sampling_frequency
+        normalized_cutoff = self.cutoff_frequency / nyquist
+        self.sos = signal.butter(self.order, normalized_cutoff,
+                                 btype=self.filter_type,
+                                 output='sos')
+
+    def __call__(self, current, sampling_frequency=None):
+
+        if self.sampling_frequency is None and sampling_frequency is None:
+            raise ValueError("Sampling frequency must be provided.")
+
+        if sampling_frequency:
+            self.sampling_frequency = sampling_frequency
+
+        if not hasattr(self, 'sos'):
+            self._calculate_sos()
+
+        if self.bidirectional:
+            current[:] = signal.sosfiltfilt(self.sos, current, axis=0)
+        else:
+            current[:] = signal.sosfilt(self.sos, current, axis=0)
