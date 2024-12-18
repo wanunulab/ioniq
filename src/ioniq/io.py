@@ -76,7 +76,7 @@ class AbstractFileReader(object):
         pass  # rewrite this function in inherited classes to process the data
 
     def __repr__(self):
-        print(self.filename)
+        self.filename
 
 
 class EDHReader(AbstractFileReader):
@@ -124,7 +124,6 @@ class EDHReader(AbstractFileReader):
                                                       int(val[0].strip().split()[0].split("/")[1])
                     case ["Acquisition start time", *val]:
                         metadata["Acquisition start time"] = " ".join(line.split(" ")[-2:])
-                        # print(metadata)
                     case _:
                         pass
 
@@ -186,6 +185,7 @@ class XMLReader(AbstractFileReader):
     accepted_keywords = ["voltage_compress", "n_remove", "downsample", "prefilter"]
     current_multiplier = 1e9  # Convert current to nA
 
+    @json_logger.log
     def __init__(self, xml_filename: str, voltage_compress=False, n_remove=0, downsample=1, prefilter=None):
         super().__init__()
         self.xml_filename = xml_filename
@@ -193,6 +193,7 @@ class XMLReader(AbstractFileReader):
         self.n_remove = n_remove
         self.downsample = downsample
         self.prefilter = prefilter
+        self.sampling_frequency = 250000  # Default sampling frequency
         # Find opt file
         base_name = os.path.splitext(os.path.basename(xml_filename))[0]
         direc = os.path.dirname(xml_filename)
@@ -203,17 +204,58 @@ class XMLReader(AbstractFileReader):
     def __iter__(self):
         return iter((self.metadata, self.current, self.voltage))
 
-    def _read(self):
-        metadata = self._parse_xml_metadata()
-        current_full = self._load_opt_data()
-        voltage = self._align_voltage(metadata, current_full)
-        current = current_full
+    def _pre_check_xml(self, root):
+        """
+        Analyzes the XML structure to determine the presence of key tags and attributes.
+        Returns:
+            - detected_features: Dict indicating the presence of specific XML elements.
+        """
+        detected_features = {
+            "HWtiming_cap_step": root.find(".//HWtiming_cap_step") is not None,
+            "cap_step_waveform": root.find(".//HWtiming_cap_step/cap_step_waveform") is not None,
+            "timestamps": len(root.findall(".//timestamp")) > 0
+        }
+        return detected_features
 
+    def _read(self):
+        # Parse the XML
+        try:
+            tree = ET.parse(self.xml_filename)
+            root = tree.getroot()
+        except (FileNotFoundError, ET.ParseError) as e:
+            raise IOError(f"Error reading XML file {self.xml_filename}: {e}")
+
+        # Perform pre-check on XML structure
+        features = self._pre_check_xml(root)
+
+        try:
+            # If HWtiming_cap_step exists, use standard parsing
+            if features["HWtiming_cap_step"]:
+                metadata = self._parse_xml_metadata(root)
+                current = self._load_opt_data()
+                voltage = self._align_voltage(metadata, current)
+
+            # custom XML processing
+            elif features["timestamps"]:
+                voltage, time_points, sampling_frequency = self.process_custom_xml()
+                metadata = {
+                    "Sampling frequency (SR)": sampling_frequency,
+                    "total_samples": len(voltage),
+                    "HeaderFile": os.path.abspath(self.xml_filename)
+                }
+                current = self._load_opt_data()
+            else:
+                raise ValueError("Unsupported XML structure. No recognized features found.")
+        except Exception as e:
+            raise RuntimeError(f"Error processing XML file {self.xml_filename}: {e}")
+        current *= self.current_multiplier
+        # Post-processing
         if self.prefilter:
             assert callable(self.prefilter)
             self.prefilter(current)
 
-        current *= self.current_multiplier
+        if voltage is not None:
+            voltage *= self.voltage_multiplier
 
         if self.downsample > 1:
             current = current[::self.downsample]
@@ -221,7 +263,7 @@ class XMLReader(AbstractFileReader):
             metadata["downsample"] = self.downsample
             metadata["eff_sampling_freq"] = metadata["Sampling frequency (SR)"] / self.downsample
 
-        if self.voltage_compress:
+        if self.voltage_compress and voltage is not None:
             voltage_splits = split_voltage_steps(voltage, as_tuples=True, n_remove=self.n_remove)
             voltage_points = [(sl, voltage[sl[0]]) for sl in voltage_splits]
             del voltage
@@ -229,25 +271,147 @@ class XMLReader(AbstractFileReader):
 
         return metadata, current, voltage
 
-    def _parse_xml_metadata(self):
+    def process_custom_xml(self):
         """
-        Parses the XML file and extracts metadata for the entire experiment.
+        Processes the custom XML file to extract voltage data, align the voltage waveform
+        with the current, and detect peaks in the current signal every time the voltage changes.
         """
+        sampling_frequency = 250000
+        current = self._load_opt_data()
         try:
             tree = ET.parse(self.xml_filename)
             root = tree.getroot()
         except (FileNotFoundError, ET.ParseError) as e:
             raise IOError(f"Error reading XML file {self.xml_filename}: {e}")
 
-        metadata = {
-            "HeaderFile": os.path.abspath(self.xml_filename),
-            "downsample": self.downsample,
-        }
+        voltage_data = []
+        time_points = []
+        timestamps = root.findall(".//timestamp")
 
-        metadata.update(self._extract_sampling_info(root))
-        metadata.update(self._extract_acquisition_time(root))
+        # Extract timestamps and voltages
+        for timestamp in timestamps:
+            msec = timestamp.get("msec")
+            voltage = timestamp.find("voltage")
+
+            if msec is not None and voltage is not None:
+                try:
+                    time = float(msec) / 1000  # Convert milliseconds to seconds
+                    volt_value = float(voltage.get("volt"))
+                    time_points.append(time)
+                    voltage_data.append((time, volt_value))
+                except ValueError as e:
+                    raise ValueError(f"Invalid timestamp in XML: {e}")
+
+        if not time_points:
+            raise ValueError(f"No time points found in {self.xml_filename}")
+
+        total_samples = int(round(time_points[-1] * sampling_frequency))
+        voltage_waveform = np.ones(len(current), dtype=np.float32)
+        initial_voltage=float(root.find(".//inital_UI_voltage").get("volt"))
+        voltage_waveform*=initial_voltage
+
+        # Find peaks for each segment
+        starts,ends,volt_values=[],[],[]
+
+        for i in range(len(voltage_data)-1):
+            starts.append(voltage_data[i][0])
+            ends.append(voltage_data[i + 1][0])
+            volt_values.append(voltage_data[i][1])
+        starts.append(ends[-1])
+        volt_values.append(voltage_data[-1][1])
+        ends.append(len(current))
+
+        prev_voltage=voltage_waveform[0]
+        global_alignment=None
+        window_shift_duration=0.08 #80ms
+        for start_time,end_time,volt_value in zip(starts,ends,volt_values):
+            volt_difference=volt_value-prev_voltage
+            # approximate start_sample
+            approximate_start_sample = int(round(start_time * sampling_frequency))
+            end_sample = int(round(end_time * sampling_frequency))
+
+            # get exact index of the first peak in the +/- 2 ms window
+            if volt_difference > 0:
+                exact_start_index = self.find_peaks_slide_window(current, approximate_start_sample,window_shift_duration,
+                                                                 sampling_frequency=sampling_frequency,sign="positive")
+            else:
+                exact_start_index = self.find_peaks_slide_window(current, approximate_start_sample,window_shift_duration,
+                                                                 sampling_frequency=sampling_frequency, sign="negative")
+
+            # If no peak is found, fallback to approximate start sample
+            if exact_start_index is None:
+                exact_start_index = approximate_start_sample
+
+            # voltage to waveform from exact start index to end sample
+            shift_samples=exact_start_index-approximate_start_sample
+            # if exact_start_index < end_sample-shift_samples:
+            window_shift=int(0.02 * sampling_frequency)
+            voltage_waveform[exact_start_index:min(end_sample+window_shift,len(voltage_waveform))] = volt_value
+            if global_alignment is None:
+                for i in range(1,len(starts)):
+                    starts[i] += shift_samples/sampling_frequency
+                    ends[i]+=shift_samples/sampling_frequency
+                global_alignment=True
+                window_shift_duration=0.002
+            # break
+            # else:
+            #     print(
+            #         f"Skipping voltage assignment for volt_value={volt_value} because "
+            #         f"exact_start_index={exact_start_index} is not less than end_sample={end_sample}")
+
+            # previous_end_sample = end_sample
+            prev_voltage=volt_value
+
+        return voltage_waveform, time_points, sampling_frequency
+
+    def find_peaks_slide_window(self, current, start_index,window_shift_duration=0.002, sampling_frequency=250000, sign="negative"):
+        """
+        Find peaks in the current every time the voltage changes.
+        The search for the peaks happens in the window of the timestamp 0.02 seconds.
+
+        """
+        window_shift = int(window_shift_duration* sampling_frequency)
+        start_window = max(0, start_index - window_shift)
+        end_window = min(len(current), start_index + window_shift)
+
+        #  segment of the current
+        segment = current[start_window:end_window]
+        # change to the diff
+
+        if sign == "negative":
+            peaks, properties = find_peaks(-segment, height=1e-9,prominence=1e-9,plateau_size=[None,None])
+        else:
+            peaks, properties = find_peaks(segment, height=1e-9,prominence=1e-9,plateau_size=[None,None])
+
+        if len(peaks) > 0:
+            # exact_start_index = peaks[0] + start_window
+            exact_start_index = properties['left_edges'][0] + start_window-1
+
+            return exact_start_index
+        else:
+            return None
+
+    def _parse_xml_metadata(self, root):
+        """
+        Parses the XML file and extracts metadata, handling missing elements gracefully.
+        """
+        metadata = {"HeaderFile": os.path.abspath(self.xml_filename)}
+
+        try:
+            metadata.update(self._extract_sampling_info(root))
+        except ValueError as e:
+            metadata["Sampling frequency (SR)"] = 250000
+            metadata["total_samples"] = None
+            metadata["total_time_s"] = None
+            print(f"Warning: Missing sampling info. Using default values. {e}")
+
+        try:
+            metadata.update(self._extract_acquisition_time(root))
+        except ValueError as e:
+            metadata["Acquisition start time"] = "Unknown"
+            print(f"Warning: Missing acquisition time. {e}")
+
         metadata.update(self._extract_file_info())
-        metadata.update(self._calculate_bandwidth(metadata))
         return metadata
 
     def _extract_sampling_info(self, root):
@@ -317,18 +481,17 @@ class XMLReader(AbstractFileReader):
 
         # Calculate the initial start sample
         start_sample = self._get_start_sample(root, sample_rate)
-        print(start_sample)
 
         # Initialize voltage array
         voltage_waveform = np.zeros(len(current_full), dtype=np.float32)
 
-        # Step 2: Dynamically determine the search range for the first peak
+        # TODO: Remove an error. Not all the files will have this tag
         time_marks = root.find(".//HWtiming_cap_step/time_alignment_marks")
         if time_marks is None:
             raise ValueError("Time alignment marks not found in the XML.")
 
         # TODO: Should we change to a certain value the end limit of the find_peak search?
-        search_end = start_sample + 200000
+        search_end = len(current_full)
 
         # Detect the first peak in the segment
         peaks, properties = self.find_peaks_in_segment(current_full, start_sample, search_end)
@@ -337,12 +500,9 @@ class XMLReader(AbstractFileReader):
             raise ValueError("No peaks detected in the current data for alignment.")
 
         first_peak_index = peaks[0] + start_sample
-        # print("first_peak_index", first_peak_index)
 
         # Process time alignment marks, adjusting for zero-voltage samples
         current_index = self._process_time_marks(root, voltage_waveform, first_peak_index)
-
-        # print(f"idx after processing time marks: {current_index}")
 
         # Process cap step waveform
         self._process_cap_step_waveform(root, voltage_waveform, current_index)
@@ -374,6 +534,7 @@ class XMLReader(AbstractFileReader):
 
         time_marks = root.find(".//HWtiming_cap_step/time_alignment_marks")
         zero_voltage_samples = 0
+        total_samples_processed = 0
         if time_marks is not None:
             # get the samples before the first peak (zero voltage samples)
             for segment in time_marks.findall("time_alignment_segment"):
@@ -392,12 +553,10 @@ class XMLReader(AbstractFileReader):
             for segment in time_marks.findall("time_alignment_segment"):
                 number_samples = int(segment.get("number_samples"))
                 voltage_mv = float(segment.get("voltage_mV"))
-                # print("voltage_mv", voltage_mv, "start_index ", start_index, "start_index + number of samples", start_index + number_samples)
                 # Assign voltage values starting from the adjusted index
                 voltage_waveform[start_index:start_index + number_samples] = voltage_mv
-                # print(f"num_samples {number_samples} with voltage {voltage_mv}. start from: {start_index}")
-
                 start_index += number_samples
+                total_samples_processed += number_samples
 
         return start_index
 
@@ -408,7 +567,6 @@ class XMLReader(AbstractFileReader):
         cap_waveform = root.find(".//HWtiming_cap_step/cap_step_waveform")
         if cap_waveform is None:
             return
-
         leading_samples = int(cap_waveform.get("leading_number_samples", 0))
         trailing_samples = int(cap_waveform.get("trailing_number_samples", 0))
 
@@ -424,6 +582,8 @@ class XMLReader(AbstractFileReader):
             voltage_waveform[current_index:end_index] = offset_mV
             current_index = end_index
 
+        return current_index
+
     def find_peaks_in_segment(self, current_data, start_index, end_index):
         """
         Apply "find_peaks" on a segment of the current data and return
@@ -433,9 +593,9 @@ class XMLReader(AbstractFileReader):
         segment = current_data[start_index:end_index]
 
         peaks, properties = find_peaks(segment, height=1e-9)
-        # print(peaks)
 
         return peaks, properties
+
 
 
 if __name__ == "__main__":
@@ -448,11 +608,12 @@ if __name__ == "__main__":
     # plt.plot(current[::100])
     # plt.waitforbuttonpress()
     # e.read("C:/Users/alito/EDR/Q402m1_SBead/Q402m1_SBead.edh")
-    #xml_file = "/Users/dinaraboyko/grad_school/cloned_repo/data/TOKW/B090624SR_100kHz__000.xml"
-    xml_file = "/Users/dinaraboyko/grad_school/cloned_repo/data/TOKW/B082224SR_250kHz__003.xml"
-    reader = XMLReader(xml_file, voltage_compress=True, downsample=1)
+    xml_file_1 = "/Users/dinaraboyko/grad_school/cloned_repo/data/TOKW/B090624SR_100kHz__000.xml"
+    xml_file_2 = "/Users/dinaraboyko/grad_school/cloned_repo/data/xialin/file 1/B110724SR_250kHz__006.xml"
+    xml_file_3 = "/Users/dinaraboyko/grad_school/cloned_repo/data/xialin/file 2/B110724SR_250kHz__008.xml"
+
+    reader = XMLReader(xml_file_3, voltage_compress=True, downsample=1)
     metadata, current, voltage = reader
-    #
     print("Metadata:", metadata)
     print("Curren:", len(current))
     print("Voltage:", voltage)
