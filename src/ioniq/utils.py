@@ -4,7 +4,10 @@ Utility functions and classes for internal and external use
 """
 
 import numpy as np
-
+from dataclasses import dataclass, field
+import scipy.signal as signal
+from typing import Literal
+from ioniq.core import MetaSegment
 
 class Singleton(type):
     """
@@ -162,3 +165,72 @@ def _si_multiplier_unit(unitstr: str) -> float:
         return _get_prefix_val()[unitstr]
 
     raise ValueError(f"Unit prefix is not known: {unitstr}, see available:\n{_get_prefix_val()}")
+
+@dataclass
+class Filter:
+    cutoff_frequency: float
+    filter_type: Literal["lowpass", "highpass", "bandpass", "bandstop"]
+    filter_method: Literal["butter", "bessel"] = field(default="butter")
+    order: int = field(default=2)
+    bidirectional: bool = True
+    sampling_frequency: float = None
+
+    def __post_init__(self):
+        if self.order < 1:
+            self.order = 1
+
+        if self.sampling_frequency:
+            self._calculate_sos()
+
+    def _calculate_sos(self):
+        nyquist = 0.5 * self.sampling_frequency
+        normalized_cutoff = self.cutoff_frequency / nyquist
+
+        if self.filter_method == "butter":
+            self.sos = signal.butter(self.order, normalized_cutoff,
+                                     btype=self.filter_type,
+                                     output='sos')
+        elif self.filter_method == "bessel":
+            self.sos = signal.bessel(self.order, normalized_cutoff,
+                                     btype=self.filter_type,
+                                     output='sos', norm='phase')
+        else:
+            raise ValueError(f"Unsupported filter method: {self.filter_method}")
+
+    def __call__(self, current, sampling_frequency=None):
+        if self.sampling_frequency is None and sampling_frequency is None:
+            raise ValueError("Sampling frequency must be provided.")
+
+        if sampling_frequency:
+            self.sampling_frequency = sampling_frequency
+
+        if not hasattr(self, 'sos'):
+            self._calculate_sos()
+
+        if self.bidirectional:
+            current[:] = signal.sosfiltfilt(self.sos, current, axis=0)
+        else:
+            current[:] = signal.sosfilt(self.sos, current, axis=0)
+
+        # TODO: add a copy of the file to avoid reopening the file
+
+
+@dataclass
+class Trimmer:
+    samples_to_remove: int
+    rank: str = "vstep"
+    newrank: str = "vstepgap"
+
+    def __call__(self, trace_file):
+        """
+        Trim segments within 'vstep' and create 'vstepgap' children.
+        """
+        for v in trace_file.traverse_to_rank(self.rank):
+            if v.end - v.start > self.samples_to_remove:
+                v.add_child(MetaSegment(
+                    start=v.start + self.samples_to_remove,
+                    end=v.end,
+                    rank=self.newrank,
+                    parent=v
+                ))
+

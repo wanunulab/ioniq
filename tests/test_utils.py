@@ -1,10 +1,7 @@
 """
 Test module for utils.py
 """
-import sys
-from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent.parent / 'src'))
 from ioniq.utils import *
 import pytest
 import numpy as np

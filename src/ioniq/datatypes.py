@@ -7,6 +7,8 @@ import datetime
 import numpy as np
 from ioniq.core import MetaSegment, AnySegment, Segment
 from ioniq.utils import Singleton
+from ioniq.setup_log import json_logger
+import uuid
 
 
 class SessionFileManager(MetaSegment, metaclass=Singleton):
@@ -16,12 +18,38 @@ class SessionFileManager(MetaSegment, metaclass=Singleton):
     """
     rank = "root"  # set the rank to "root"
 
+    @json_logger.log
     def __init__(self) -> None:
         """
         Initialize methods
         """
         super().__init__(self, end=2)  # end = 2: Segment end at position 2???
         self.unique_features["SessionStartTime"] = datetime.datetime.now()
+        self.affector_table = {}
+
+    # make log management table. contains everything that has happened in this session
+
+    def register_affector(self, affector):
+
+        # generate a uuid
+        new_uuid = str(uuid.uuid4())
+        try:
+            affector_repr = repr(affector)
+        except Exception:
+            affector_repr = "<unrepresentable_repr>"
+        entry = {
+            "class": affector.__class__.__name__,
+            "signature": affector_repr,
+            "timestamp": datetime.datetime.now().isoformat()}
+
+        self.affector_table[new_uuid] = entry  # entry here is the the entry to log structure(
+        json_logger._log_to_json({
+            "action": "register_affector",
+            "uuid": new_uuid,
+            "entry": entry
+        })
+        return new_uuid
+
 
     def add_child(self, child: AnySegment) -> None:
         """
@@ -54,6 +82,8 @@ class TraceFile(Segment):
     """
     Class inherits from Segment and represents the file with the current dara and voltage
     """
+
+    @json_logger.log
     def __init__(self, current: np.ndarray, voltage=None, rank="file", parent=None,
                  unique_features: dict = {}, metadata: dict = {}):
         """
@@ -68,6 +98,7 @@ class TraceFile(Segment):
         self.start = 0
         self.end = len(self.current)
         self.metadata = metadata
+        self.uuid = None
         self.sampling_freq = self.unique_features.get("sampling_freq")
         self.time = np.arange(self.start, self.end) / self.sampling_freq
 
