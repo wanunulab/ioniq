@@ -19,13 +19,13 @@ from itertools import tee
 # import time
 import json
 from scipy import signal
+from scipy.fft import fft
 import numpy as np
 import pyximport
 from ioniq.core import Segment, MetaSegment
 from ioniq.cparsers import FastStatSplit
 pyximport.install(setup_args={'include_dirs': np.get_include()})
 AnyParser = TypeVar("AnyParser", bound="Parser")
-
 
 
 #########################################
@@ -196,7 +196,7 @@ class SpikeParser(Parser):
                  wlen=None, rel_height: float = 0.5, plateu_size=None,
                  fractional: bool = True) -> None:
         # Add super()__init__ to isinitate class PArser?
-        super().__init__()
+        #super().__init__()
         self._height = height
         self._threshold = threshold
         self._distance = distance
@@ -427,6 +427,7 @@ class SpeedyStatSplit(Parser):
         :param cutoff_freq: Cutoff frequency for filtering, default=None
         :type cutoff_freq: float or None, optional
         """
+
         self.min_width = min_width
         self.max_width = max_width
         self.min_gain_per_sample = min_gain_per_sample
@@ -449,6 +450,7 @@ class SpeedyStatSplit(Parser):
                                self.window_width, self.min_gain_per_sample,
                                self.false_positive_rate, self.prior_segments_per_second,
                                self.sampling_freq, self.cutoff_freq)
+
         return parser.parse(current)
 
     def parse_meta(self, current):
@@ -458,10 +460,11 @@ class SpeedyStatSplit(Parser):
         :param current: The current data to be parsed.
         :type current: numpy.ndarray
         """
-        parser = FastStatSplit(self.min_width, self.max_width,self.window_width,
+        parser = FastStatSplit(self.min_width, self.max_width, self.window_width,
                                self.min_gain_per_sample, self.false_positive_rate,
                                self.prior_segments_per_second, self.sampling_freq,
                                self.cutoff_freq)
+
         return parser.parse_meta(current)
 
     def best_single_split(self, current):
@@ -572,6 +575,7 @@ class FilterDerivativeSegmenter(Parser):
             if np.argmax(segment) > self.high_threshold:
                 # Save the edges of the segment
                 split_points = np.concatenate((split_points, [start, end]))
+
         # Now you have the edges of all transitions saved, and so the states are
         # the current between these transitions
         tics = np.concatenate((split_points, [current.shape[0]]))
@@ -586,3 +590,288 @@ class FilterDerivativeSegmenter(Parser):
         """
         self.low_thresh = float(self.lowThreshInput.text())
         self.high_thresh = float(self.highThreshInput.text())
+
+
+class NoiseFilterParser(Parser):
+    """
+    This unit is a parser subclass. when invoked on a segment (whole file or subsegment),
+    it identifies the areas where bad things happened, and areas where the data is clean.
+    Examples of bad things include high noise (60Hz noise from opening the cage), membrane
+    rupture, and membrane formation attempts. it produces children from the good
+    regions of the data and ignore the bad regions.
+
+    """
+    def __init__(self, noise_threshold=60, detect_noise=True):
+        super().__init__()
+        self.noise_threshold = noise_threshold
+        self.detect_noise = detect_noise
+        self.meta_segments = []
+
+    def _detect_noisy_regions(self, data, segment_start, segment_end):
+        noisy_regions = []
+        freq_spectrum = np.abs(fft(data))
+        freq_bins = np.fft.fftfreq(len(data))
+
+        for i, amplitude in enumerate(freq_spectrum):
+            if abs(freq_bins[i] - 60) < 1 and amplitude > self.noise_threshold:
+                start, end = self._find_noise_segment(data, i, segment_start, segment_end)
+                noisy_regions.append((start, end))
+
+        return self._merge_overlapping_regions(noisy_regions)
+
+    def parse(self, data, segment_start=0, segment_end=None):
+        if segment_end is None:
+            segment_end = len(data)
+
+        noisy_regions = self._detect_noisy_regions(data, segment_start, segment_end)
+        last_end = segment_start
+
+        for start, end in noisy_regions:
+            start = max(segment_start, start)
+            end = min(segment_end, end)
+            if start > last_end:
+                self.meta_segments.append(MetaSegment(last_end, start, unique_features="clean"))
+            self.meta_segments.append(MetaSegment(start, end, unique_features="noisy"))
+            last_end = end
+
+        if last_end < segment_end:
+            self.meta_segments.append(MetaSegment(last_end, segment_end, unique_features="clean"))
+
+        # Ensure all segments fit strictly within the parent range
+        return [
+            seg for seg in self.meta_segments
+            if segment_start <= seg.start < seg.end <= segment_end
+        ]
+
+
+class IVCurveParser:
+    """
+    The class handles:
+
+        1. Identifies a file where an IV curve is recorded based on the pattern.
+    Here, the goal is to feed the voltage information to a module and have it search and do pattern matching to find one of
+    these possibilities. .This can be a parser that accepts voltage array or compressed voltage as one of the inputs.
+
+
+    """
+
+    def __init__(self, voltage):
+        #super().__init__()
+        self.voltage = voltage
+
+    def parse(self):
+        """
+        Searches for a pattern in the voltage data to identify IV.
+        If none exists, the given datafile does not contain IV curves.
+        If one or multiple IV curves are found, it returns start and
+        end regions of each of them.
+        Returns: list of indices: start and end for each deteced IV curve
+
+        """
+        patterns = self._defined_pattern()
+        iv_regions = []
+
+        for pattern_name, pattern in patterns.items():
+            match_regions = self._find_pattern(self.voltage, pattern)
+            if match_regions:
+                for start, end in match_regions:
+                    iv_regions.append((start, end))
+
+        return patterns
+
+    def _defined_pattern(self):
+        """
+        Defined common IV curve patterns
+        """
+
+        patterns = {
+            "cyclical": [0, 0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25, 0, -0.25, -0.5, -0.75, -1],
+            "ramp": [0, 0.25, 0.5, 0.75, 1, 0, -0.25, -0.5, -0.75, -1],
+            "flip_flop_zero": [0, 0.25, 0, -0.25, 0, 0.5, 0, -0.5, 0, 0.75, 0, -0.75, 0, 1, 0, -1, 0],
+            "flip_flop_no_zero": [0, 0.25, -0.25, 0.5, -0.5, 0.75, -0.75, 1, -1]
+        }
+        return patterns
+
+    def _find_pattern(self, pattern):
+        """
+
+        Match the pattern to find the occurrences of the pattern in
+        the voltage array
+        """
+
+        pattern_length = len(pattern)
+        match_region = []
+        for i in range(len(self.voltage) - pattern_length + 1):
+            # find a pattern comparing voltage array and the pattern
+            if np.allclose(self.voltage[i:i + pattern_length], pattern, atol=0.001):
+                match_region.append((i, i + pattern_length - 1))
+
+        return match_region
+
+
+class IVCurveAnalyzer(Parser):
+    """
+    Check for at Least Two Voltage Steps: confirm that the segment has at least two voltage steps.
+
+    Divide into Voltage Segments: separate data into  voltage segments.
+
+    Call `IVAnalyzer` on Parent Segment: compute the mean and std of the current in each
+    voltage segment.
+
+    Return an Array of (voltage: (imean, istd)) pair:
+
+    Also mean and std should be calulated in two ways
+    """
+
+    def __init__(self, current, parent_segment, sampling_frequency, method="simple"):
+        super().__init__()
+        self.current = current
+        self.method = method
+        self.parent_segment = parent_segment
+        self.sampling_frequency = sampling_frequency
+
+    def analyze(self):
+        """
+        Analyze each voltage step in a parent segment
+
+        """
+        # condition: at list two voltage steps are present
+        if len(self.parent_segment.children) < 2:
+            raise ValueError("The segment should have at least two voltage steps")
+        result = {}
+        for vstep in self.parent_segment.chindren:
+            voltage = vstep.voltage
+            current = vstep.current
+            if self.method == "simple":
+                imean, istd = self._simple_stats(current)
+            elif self.method == "extra":
+                imean, istd = self._extra_stats(current)
+            else:
+                raise ValueError("Invalid method. Choose 'simple' or 'extra'")
+            result[voltage] = (imean, istd)
+
+        return result
+
+    def _simple_stats(self, current):
+        return np.mean(current), np.tsd(current)
+
+    def _extra_stats(self, current):
+        """
+        divide segment into n subsegments (default 10 or 0.1s, whichever is longer),
+        sort based on imean of those subsegments, and extract the imean and istd
+        from the subsegment with the highest imean magnitude (most positive or most negative).
+
+        The goal of this is to ignore the regions where a biological pore is gating
+        and only extract the segment where the pore looks most open.
+        """
+        subsegment_duration = 0.1
+        current_data = current
+        n_subsegments = int(max(10, subsegment_duration))
+
+
+class AutoSquareParser(Parser):
+    """
+    Class for building a straightforward pipeline of data analysis
+    to make it reusable with customized parameters
+    """
+    required_parent_attributes = ["current", "eff_sampling_freq", "voltage"]
+    _fractionable_attr = ["threshold_baseline"]
+
+    def __init__(self, segment, voltage_range=(0.149, 0.251), starts=None, ends=None, threshold_baseline=0.7,
+                  duration_threshold=4, sampling_buffer=50, expected_current=70e-3, rules=[]):
+        super().__init__()
+        self.segment = segment
+        self.starts = starts
+        self.ends = ends
+        self.voltage_range = voltage_range
+        self.threshold = threshold_baseline
+        self.duration_threshold = duration_threshold
+        self.sampling_buffer = sampling_buffer
+        self.expected_current = expected_current
+        self.rules = rules
+
+    def parse(self, current, eff_sampling_freq, voltage):
+        # sampling_freq = self.segment.metadata["eff_sampling_freq"]
+        # if self.starts is None:
+        #     self.starts = [self.segment.time[0]]
+        # if self.ends is None:
+        #     self.ends = [self.segment.time[-1]]
+        # steps = set()
+        #
+        # for step in self.segment.traverse_to_rank("vstepgap"):
+        #     for start, end in zip(self.starts, self.ends):
+        #         if start < step.time[0] \
+        #                 and step.time[-1] < end \
+        #                 and self.voltage_range[0] <= step.get_feature("voltage") <= self.voltage_range[1]:
+        #             steps.add(step)
+
+        results = []
+        # lower_bound = self.expected_current * 0.7
+        # upper_bound = self.expected_current * 1.3
+        hist, edges = np.histogram(current, bins=100, range=(50e-3, 900e-3))
+        centers = edges[:-1] + (edges[1] - edges[0]) * 0.5
+        I0guess = centers[np.argmax(hist)]
+        Ithresh = I0guess * self.threshold
+
+        if I0guess < 150e-3:
+            pass
+
+        # lambda parser with dynamic rules
+        lambda_parser = lambda_event_parser(
+            threshold=Ithresh,
+            rules=[
+                      lambda event: 0 < event.mean < I0guess * 0.6,
+                  ] + self.rules
+        )
+        events = lambda_parser.parse(current)
+        if len(events) == 0:
+            return []
+        for i in range(len(events)):
+            if i == len(events) - 1:
+                bstart = events[i].start + events[i].duration
+
+                bend = current.shape[0]
+            else:
+                bstart = events[i].start + events[i].duration
+                bend = events[i + 1].start
+
+            baseline = current[bstart:bend]
+            events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
+
+        if events[-1].start + events[-1].duration == current.shape[0]:
+            events.pop(-1)
+        if len(events) == 0:
+            return []
+        if events[0].start == 0:
+            events.pop(0)
+            return []
+
+        # Adjust the events by removing transitions
+
+        for event in events:
+            diff = np.diff(current[event.start:event.start + event.duration])
+            idxs = np.argwhere(diff > 0).ravel()
+
+            new_start = event.start + idxs[0]
+            new_end = event.start + idxs[-1] + 1
+
+            event.start = new_start
+            event.end = new_end
+            event.duration = (new_end - new_start) / eff_sampling_freq
+
+        #for event in events:
+
+            wstart = max(event.start - 50, 0)
+            wend = min(event.start + event.duration + 50, current.shape[0])
+            # print(wstart, "wstart", "\n", wend, "wend")
+            event.unique_features["wrap"] = current[wstart:wend]
+
+        # for event in events:
+        #     event.voltage = step.get_feature("voltage")
+        #     event.start_time = (event.start + step.start) / sampling_freq
+
+            results.append((event.start, event.end, event.unique_features))
+
+        return results
+
+
