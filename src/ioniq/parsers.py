@@ -791,7 +791,7 @@ class AutoSquareParser(Parser):
         self.rules = rules
 
     def parse(self, current, eff_sampling_freq, voltage):
-        # sampling_freq = self.segment.metadata["eff_sampling_freq"]
+        #eff_sampling_freq = self.segment.metadata["eff_sampling_freq"]
         # if self.starts is None:
         #     self.starts = [self.segment.time[0]]
         # if self.ends is None:
@@ -851,6 +851,9 @@ class AutoSquareParser(Parser):
         for event in events:
             diff = np.diff(current[event.start:event.start + event.duration])
             idxs = np.argwhere(diff > 0).ravel()
+            if idxs.size == 0:
+                # Skip this event if no positive difference is found
+                continue
 
             new_start = event.start + idxs[0]
             new_end = event.start + idxs[-1] + 1
@@ -863,7 +866,10 @@ class AutoSquareParser(Parser):
 
             wstart = max(event.start - 50, 0)
             wend = min(event.start + event.duration + 50, current.shape[0])
-            # print(wstart, "wstart", "\n", wend, "wend")
+
+            wstart = int(wstart)
+            wend = int(wend)
+
             event.unique_features["wrap"] = current[wstart:wend]
 
         # for event in events:
