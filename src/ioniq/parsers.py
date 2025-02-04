@@ -13,7 +13,18 @@ pull out the events, saving them as text files.
 # from itertools import tee, chain
 # import re
 
-# from typing import Type, TypeVar
+try:
+    import cupy
+    import cupyx.scipy.signal as signal
+    if not cupy.cuda.is_available():
+        raise ImportError
+
+    np = cupy
+except ImportError:
+
+    import numpy as np
+    from scipy import signal
+
 from typing import TypeVar
 from itertools import tee
 # import time
@@ -791,23 +802,9 @@ class AutoSquareParser(Parser):
         self.rules = rules
 
     def parse(self, current, eff_sampling_freq, voltage):
-        #eff_sampling_freq = self.segment.metadata["eff_sampling_freq"]
-        # if self.starts is None:
-        #     self.starts = [self.segment.time[0]]
-        # if self.ends is None:
-        #     self.ends = [self.segment.time[-1]]
-        # steps = set()
-        #
-        # for step in self.segment.traverse_to_rank("vstepgap"):
-        #     for start, end in zip(self.starts, self.ends):
-        #         if start < step.time[0] \
-        #                 and step.time[-1] < end \
-        #                 and self.voltage_range[0] <= step.get_feature("voltage") <= self.voltage_range[1]:
-        #             steps.add(step)
 
         results = []
-        # lower_bound = self.expected_current * 0.7
-        # upper_bound = self.expected_current * 1.3
+
         hist, edges = np.histogram(current, bins=100, range=(50e-3, 900e-3))
         centers = edges[:-1] + (edges[1] - edges[0]) * 0.5
         I0guess = centers[np.argmax(hist)]
@@ -836,7 +833,11 @@ class AutoSquareParser(Parser):
                 bend = events[i + 1].start
 
             baseline = current[bstart:bend]
-            events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
+            if baseline.size > 0:
+                events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
+            else:
+                events[i].unique_features = {"baseline": np.nan}
+            #events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
 
         if events[-1].start + events[-1].duration == current.shape[0]:
             events.pop(-1)
@@ -862,6 +863,9 @@ class AutoSquareParser(Parser):
             event.end = new_end
             event.duration = (new_end - new_start) / eff_sampling_freq
 
+            # Set the rank
+            #event.rank = "event"
+
         #for event in events:
 
             wstart = max(event.start - 50, 0)
@@ -872,9 +876,12 @@ class AutoSquareParser(Parser):
 
             event.unique_features["wrap"] = current[wstart:wend]
 
-        # for event in events:
-        #     event.voltage = step.get_feature("voltage")
-        #     event.start_time = (event.start + step.start) / sampling_freq
+            # Unique features
+            event.unique_features["mean"] = np.mean(current[event.start:event.end])
+            event.unique_features["frac"] = 1 - (event.unique_features["mean"] / I0guess)
+            event.unique_features["duration"] = event.duration
+            event.unique_features["current"] = current[event.start:event.end]
+            event.unique_features["start"] = event.start
 
             results.append((event.start, event.end, event.unique_features))
 

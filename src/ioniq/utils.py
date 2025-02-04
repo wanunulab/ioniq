@@ -4,6 +4,7 @@ Utility functions and classes for internal and external use
 """
 
 import numpy as np
+import pandas as pd
 from dataclasses import dataclass, field
 import scipy.signal as signal
 from typing import Literal
@@ -193,7 +194,7 @@ class Filter:
         elif self.filter_method == "bessel":
             self.sos = signal.bessel(self.order, normalized_cutoff,
                                      btype=self.filter_type,
-                                     output='sos', norm='phase')
+                                     output='sos', norm='mag')
         else:
             raise ValueError(f"Unsupported filter method: {self.filter_method}")
 
@@ -233,4 +234,24 @@ class Trimmer:
                     rank=self.newrank,
                     parent=v
                 ))
+
+
+def extract_features(seg, bottom_rank, extractions: list[str], add_ons: dict = {}, lambdas={}):
+    headers = extractions + list(add_ons.keys()) + list(lambdas.keys())
+    df = pd.DataFrame(columns=headers)
+    for bottom_seg in seg.traverse_to_rank(bottom_rank):
+        row_dict = {}
+        for feature in extractions:
+            row_dict[feature] = bottom_seg.get_feature(feature)
+        for feature, value in add_ons.items():
+            row_dict[feature] = value
+        for feature, lambda_func in lambdas.items():
+            row_dict[feature] = lambda_func(bottom_seg)
+        df.loc[len(df)] = row_dict
+    return df
+# extract_features(seg, bottom_rank='event',
+#              extractions=['mean', 'frac', 'duration', 'baseline', 'current', 'wrap', 'start'],
+#              add_ons={"sample_type": "MBP_D10"},
+#              lambdas={"Voltage": lambda seg: int(1000 * seg.get_feature("voltage")),
+#                       "start_time": lambda seg: seg.start / seg.get_feature("eff_sampling_freq")})
 
