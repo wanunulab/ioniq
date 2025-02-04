@@ -863,11 +863,6 @@ class AutoSquareParser(Parser):
             event.end = new_end
             event.duration = (new_end - new_start) / eff_sampling_freq
 
-            # Set the rank
-            #event.rank = "event"
-
-        #for event in events:
-
             wstart = max(event.start - 50, 0)
             wend = min(event.start + event.duration + 50, current.shape[0])
 
