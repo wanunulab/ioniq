@@ -11,6 +11,15 @@ from ioniq.setup_log import json_logger
 import uuid
 
 
+# try:
+#     import cupy
+#     if not cupy.cuda.is_available():
+#         raise ImportError
+#
+#     np = cupy
+# except ImportError:
+#     import numpy as np
+
 class SessionFileManager(MetaSegment, metaclass=Singleton):
     """
     Class inherits rom MetaSegment and uses the Singleton

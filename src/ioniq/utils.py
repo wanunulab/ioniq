@@ -2,13 +2,25 @@
 """
 Utility functions and classes for internal and external use
 """
-
+import glob
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass, field
 import scipy.signal as signal
 from typing import Literal
 from ioniq.core import MetaSegment
+
+# try:
+#     import cupy
+#     import cupyx.scipy.signal as signal
+#     if not cupy.cuda.is_available():
+#         raise ImportError
+
+#     np = cupy
+# except ImportError:
+
+#     import numpy as np
+#     from scipy import signal
 
 class Singleton(type):
     """
@@ -254,4 +266,6 @@ def extract_features(seg, bottom_rank, extractions: list[str], add_ons: dict = {
 #              add_ons={"sample_type": "MBP_D10"},
 #              lambdas={"Voltage": lambda seg: int(1000 * seg.get_feature("voltage")),
 #                       "start_time": lambda seg: seg.start / seg.get_feature("eff_sampling_freq")})
+
+
 

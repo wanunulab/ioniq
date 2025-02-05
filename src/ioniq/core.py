@@ -15,7 +15,17 @@ from itertools import chain
 from typing import TypeVar
 from functools import cached_property
 import numpy as np
-#from IonTrace.Parsers.parsers import AnyParser
+
+
+# try:
+#     import cupy
+#     if not cupy.cuda.is_available():
+#         raise ImportError
+#
+#     np = cupy
+# except ImportError:
+#
+#     import numpy as np
 
 AnySegment = TypeVar("AnySegment", bound="AbstractSegmentTree")
 
@@ -25,7 +35,7 @@ class AbstractSegmentTree(object):
     Class to manage a tree structure of segments.
     """
     # Memory optimization by limiting attributes
-    __slots__ = ('parent', 'children', 'start', 'end', 'rank', '__dict__')
+    __slots__ = ('parent', 'children', 'start', 'end', 'rank', 'rank', 'creator', 'modifiers', '__dict__')
 
     def __init__(self) -> None:
         """
@@ -40,7 +50,24 @@ class AbstractSegmentTree(object):
         self.start: int | None = 0
         self.end: int | None = None
         self.rank: str = None
-        pass
+
+        self.creator = None
+        self.modifiers = []
+
+        #pass
+    def set_creator(self, creator_id):
+        """
+
+        Set the creator id
+        """
+        self.creator = creator_id
+
+    def add_modifier(self, modifier_id):
+        """
+        Add a modifier ID to the list of modificatiosn
+
+        """
+        self.modifiers.append(modifier_id)
 
     def parse(self, parser, newrank: str, at_child_rank: str | None = None, **kwargs) -> bool:
         """
@@ -61,15 +88,15 @@ class AbstractSegmentTree(object):
                 """
                 Called if at_child_rank_ is passed to "parse" method
                 """
-                attributes = {[(attr_name, target.get_feature(attr_name))
-                               for attr_name in required_parent_attributes]}
+                attributes = dict([(attr_name, target.get_feature(attr_name))
+                                   for attr_name in required_parent_attributes])
                 # if "sampling_freq" in required_parent_attributes:
                 #     attributes["sampling_freq"]=\
                 #        self.climb_to_rank('file').unique_features["sampling_freq"]
                 parser_results = parser.parse(**attributes, **kwargs)
                 children = [MetaSegment(start+self.start, end+self.start, parent=target,
                                         rank=newrank, unique_features=unique_features)
-                                        for start, end, unique_features in parser_results]
+                            for start, end, unique_features in parser_results]
                 target.clear_children()
                 target.add_children(children)
 
@@ -141,6 +168,7 @@ class AbstractSegmentTree(object):
         Get the length of the segment
         :return: len(segment)
         """
+
         return self.end-self.start
 
     def get_top_parent(self) -> AnySegment:
