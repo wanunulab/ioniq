@@ -193,7 +193,7 @@ class Filter:
         elif self.filter_method == "bessel":
             self.sos = signal.bessel(self.order, normalized_cutoff,
                                      btype=self.filter_type,
-                                     output='sos', norm='phase')
+                                     output='sos', norm='mag')
         else:
             raise ValueError(f"Unsupported filter method: {self.filter_method}")
 
