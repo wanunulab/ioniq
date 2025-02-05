@@ -61,8 +61,10 @@ class AbstractSegmentTree(object):
                 """
                 Called if at_child_rank_ is passed to "parse" method
                 """
-                attributes = {[(attr_name, target.get_feature(attr_name))
-                               for attr_name in required_parent_attributes]}
+                attributes = {}
+                for attr_name in required_parent_attributes:
+                    attributes[attr_name] = target.get_feature(attr_name)
+                    
                 # if "sampling_freq" in required_parent_attributes:
                 #     attributes["sampling_freq"]=\
                 #        self.climb_to_rank('file').unique_features["sampling_freq"]
