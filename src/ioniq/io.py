@@ -175,7 +175,7 @@ class EDHReader(AbstractFileReader):
         return metadata, current, voltage
 
 
-class XMLReader(AbstractFileReader):
+class OPTReader(AbstractFileReader):
     """
     A class for reading and processing .opt files, including parsing
     metadata and extracting current and voltage data.
@@ -186,23 +186,48 @@ class XMLReader(AbstractFileReader):
     current_multiplier = 1e9  # Convert current to nA
 
     @json_logger.log
-    def __init__(self, xml_filename: str, voltage_compress=False, n_remove=0, downsample=1, prefilter=None):
+    def __init__(self, opt_filename: str, voltage_compress=False, n_remove=0, downsample=1, prefilter=None):
         super().__init__()
-        self.xml_filename = xml_filename
+        self.opt_filename = opt_filename
         self.voltage_compress = voltage_compress
         self.n_remove = n_remove
         self.downsample = downsample
         self.prefilter = prefilter
         self.sampling_frequency = 250000  # Default sampling frequency
-        # Find opt file
-        base_name = os.path.splitext(os.path.basename(xml_filename))[0]
-        direc = os.path.dirname(xml_filename)
-        pattern = os.path.join(direc, f"{base_name}.opt")
-        self.opt_filename = glob.glob(pattern)[0]
+
+        # Find xml or opt format file with voltage
+        base_name = os.path.splitext(os.path.basename(opt_filename))[0]
+        direc = os.path.dirname(opt_filename)
+
+        pattern_xml = os.path.join(direc, f"{base_name}.xml")
+        xml_file = glob.glob(pattern_xml)
+
+        pattern_opt = os.path.join(direc, f"{base_name}_volt.opt")
+        opt_file = glob.glob(pattern_opt)
+
+        if opt_file:
+            self.volt_filename = opt_file[0]
+        elif xml_file:
+            self.xml_filename = xml_file[0]
+
+        else:
+            raise FileNotFoundError(
+                f"Neither a '_volt.opt' nor a '.xml' file was found")
         self.metadata, self.current, self.voltage = self._read()
 
     def __iter__(self):
         return iter((self.metadata, self.current, self.voltage))
+
+    def _load_voltage_opt_file(self):
+        """
+        Load voltage data from _volt.opt file.
+        The recorded voltage is noisy and typically off by <1 mV.
+        Remove the noise in voltage data rounding it to the nearest 5mV step.
+        This step is necessary for a better voltage-current alignment
+        """
+        volt = np.fromfile(self.volt_filename, dtype='>d')
+        voltage = np.round(volt / 5, decimals=3) * 5
+        return voltage
 
     def _pre_check_xml(self, root):
         """
@@ -218,36 +243,47 @@ class XMLReader(AbstractFileReader):
         return detected_features
 
     def _read(self):
-        # Parse the XML
-        try:
-            tree = ET.parse(self.xml_filename)
-            root = tree.getroot()
-        except (FileNotFoundError, ET.ParseError) as e:
-            raise IOError(f"Error reading XML file {self.xml_filename}: {e}")
+        # if Voltage stored in `_volt.opt`
+        if hasattr(self, 'volt_filename'):
+            voltage = self._load_voltage_opt_file()
+            metadata = {
+                "File": self.opt_filename,
+                "Sampling frequency (SR)": 250000,
+                "Voltage data points": len(voltage)
+            }
+            current = self._load_opt_data()
+        else:
+            # Parse the XML
+            try:
+                tree = ET.parse(self.xml_filename)
+                root = tree.getroot()
+            except (FileNotFoundError, ET.ParseError) as e:
+                raise IOError(f"Error reading XML file {self.xml_filename}: {e}")
 
-        # Perform pre-check on XML structure
-        features = self._pre_check_xml(root)
+            # Perform pre-check on XML structure
+            features = self._pre_check_xml(root)
 
-        try:
-            # If HWtiming_cap_step exists, use standard parsing
-            if features["HWtiming_cap_step"]:
-                metadata = self._parse_xml_metadata(root)
-                current = self._load_opt_data()
-                voltage = self._align_voltage(metadata, current)
+            try:
+                # If HWtiming_cap_step exists, use standard parsing
+                if features["HWtiming_cap_step"]:
+                    metadata = self._parse_xml_metadata(root)
+                    current = self._load_opt_data()
+                    voltage = self._align_voltage(metadata, current)
 
-            # custom XML processing
-            elif features["timestamps"]:
-                voltage, time_points, sampling_frequency = self.process_custom_xml()
-                metadata = {
-                    "Sampling frequency (SR)": sampling_frequency,
-                    "total_samples": len(voltage),
-                    "HeaderFile": os.path.abspath(self.xml_filename)
-                }
-                current = self._load_opt_data()
-            else:
-                raise ValueError("Unsupported XML structure. No recognized features found.")
-        except Exception as e:
-            raise RuntimeError(f"Error processing XML file {self.xml_filename}: {e}")
+                # custom XML processing
+                elif features["timestamps"]:
+                    voltage, time_points, sampling_frequency = self.process_custom_xml()
+                    metadata = {
+                        "Sampling frequency (SR)": sampling_frequency,
+                        "total_samples": len(voltage),
+                        "HeaderFile": os.path.abspath(self.xml_filename)
+                    }
+                    current = self._load_opt_data()
+                else:
+                    raise ValueError("Unsupported XML structure. No recognized features found.")
+            except Exception as e:
+                raise RuntimeError(f"Error processing XML file {self.xml_filename}: {e}")
+
         current *= self.current_multiplier
         # Post-processing
         if self.prefilter:
@@ -370,7 +406,7 @@ class XMLReader(AbstractFileReader):
         The search for the peaks happens in the window of the timestamp 0.02 seconds.
 
         """
-        window_shift = int(window_shift_duration* sampling_frequency)
+        window_shift = int(window_shift_duration * sampling_frequency)
         start_window = max(0, start_index - window_shift)
         end_window = min(len(current), start_index + window_shift)
 
@@ -608,11 +644,11 @@ if __name__ == "__main__":
     # plt.plot(current[::100])
     # plt.waitforbuttonpress()
     # e.read("C:/Users/alito/EDR/Q402m1_SBead/Q402m1_SBead.edh")
-    xml_file_1 = "/Users/dinaraboyko/grad_school/cloned_repo/data/TOKW/B090624SR_100kHz__000.xml"
-    xml_file_2 = "/Users/dinaraboyko/grad_school/cloned_repo/data/xialin/file 1/B110724SR_250kHz__006.xml"
-    xml_file_3 = "/Users/dinaraboyko/grad_school/cloned_repo/data/xialin/file 2/B110724SR_250kHz__008.xml"
+    opt_file_1 = "/Users/dinaraboyko/grad_school/cloned_repo/data/TOKW/B090624SR_100kHz__000.opt"
+    opt_file_2 = "/Users/dinaraboyko/grad_school/cloned_repo/data/xialin/file 1/B110724SR_250kHz__006.opt"
+    opt_file_3 = "/Users/dinaraboyko/grad_school/cloned_repo/data/011225/B011225_000--214219.opt"
 
-    reader = XMLReader(xml_file_3, voltage_compress=True, downsample=1)
+    reader = OPTReader(opt_file_3, voltage_compress=True, downsample=1)
     metadata, current, voltage = reader
     print("Metadata:", metadata)
     print("Curren:", len(current))
