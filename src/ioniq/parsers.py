@@ -461,8 +461,9 @@ class SpeedyStatSplit(Parser):
                                self.window_width, self.min_gain_per_sample,
                                self.false_positive_rate, self.prior_segments_per_second,
                                self.sampling_freq, self.cutoff_freq)
-
-        return parser.parse(current)
+        results=parser.parse(current)
+        print([(seg.start,seg.end,{}) for seg in results])
+        return [(seg.start,seg.end,{}) for seg in results]
 
     def parse_meta(self, current):
         """
@@ -788,30 +789,33 @@ class AutoSquareParser(Parser):
     required_parent_attributes = ["current", "eff_sampling_freq", "voltage"]
     _fractionable_attr = ["threshold_baseline"]
 
-    def __init__(self, segment, voltage_range=(0.149, 0.251), starts=None, ends=None, threshold_baseline=0.7,
-                  duration_threshold=4, sampling_buffer=50, expected_current=70e-3, rules=[]):
+    def __init__(self, segment, starts=None, ends=None, threshold_baseline=0.7,
+                  duration_threshold=4, sampling_buffer=50, expected_conductance=1.9, rules=[]):
         super().__init__()
         self.segment = segment
         self.starts = starts
         self.ends = ends
-        self.voltage_range = voltage_range
+        # self.voltage_range = voltage_range
         self.threshold = threshold_baseline
         self.duration_threshold = duration_threshold
         self.sampling_buffer = sampling_buffer
-        self.expected_current = expected_current
+        self.expected_conductance = expected_conductance
         self.rules = rules
 
     def parse(self, current, eff_sampling_freq, voltage):
 
         results = []
+        
+        expected_baseline = np.abs(voltage)*self.expected_conductance 
 
-        hist, edges = np.histogram(current, bins=100, range=(50e-3, 900e-3))
+        hist, edges = np.histogram(current, bins=100, range=(expected_baseline*0.5,expected_baseline*1.5))
         centers = edges[:-1] + (edges[1] - edges[0]) * 0.5
         I0guess = centers[np.argmax(hist)]
         Ithresh = I0guess * self.threshold
+        # if expected_baseline/1.2<I0guess <expected_baseline*1.2 :
+        #     return []
 
-        if I0guess < 150e-3:
-            pass
+        
 
         # lambda parser with dynamic rules
         lambda_parser = lambda_event_parser(
@@ -823,6 +827,7 @@ class AutoSquareParser(Parser):
         events = lambda_parser.parse(current)
         if len(events) == 0:
             return []
+        ignored=[]
         for i in range(len(events)):
             if i == len(events) - 1:
                 bstart = events[i].start + events[i].duration
@@ -833,12 +838,22 @@ class AutoSquareParser(Parser):
                 bend = events[i + 1].start
 
             baseline = current[bstart:bend]
+
+            
+        #     return []
             if baseline.size > 0:
                 events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
             else:
-                events[i].unique_features = {"baseline": np.nan}
-            #events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
+                ignored.append(i)
+                continue
 
+            if not(expected_baseline/1.2<np.median(baseline) <expected_baseline*1.2) :
+                ignored.append(i)
+                continue
+        events = [event for i, event in enumerate(events) if not (i in ignored)]
+            #events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
+        if len(events) == 0:
+            return []
         if events[-1].start + events[-1].duration == current.shape[0]:
             events.pop(-1)
         if len(events) == 0:
@@ -877,6 +892,8 @@ class AutoSquareParser(Parser):
             event.unique_features["duration"] = event.duration
             event.unique_features["current"] = current[event.start:event.end]
             event.unique_features["start"] = event.start
+            event.unique_features["end"]=event.end
+
 
             results.append((event.start, event.end, event.unique_features))
 
