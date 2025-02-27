@@ -110,8 +110,7 @@ def si_eval(value, unit=None, return_unit=False):
     :param return_unit: If True, the function returns a tuple with the numeric value and the unit.
     :type return_unit: bool, optional
     :return: The converted value, optionally with the unit if `return_unit` is True.
-    :rtype: float or tuple
-
+    :rtype: float(tuple)
     """
     # If value is a string, split it to separate the value from unit
     if isinstance(value, str):
@@ -249,7 +248,19 @@ class Trimmer:
 
 
 def extract_features(seg, bottom_rank, extractions: list[str], add_ons: dict = {}, lambdas={}):
+    """
+
+    :param seg:
+    :type seg: object
+    :param bottom_rank:
+    :type bottom_rank: str
+    :param extractions:
+    :param add_ons:
+    :param lambdas:
+    :return:
+    """
     headers = extractions + list(add_ons.keys()) + list(lambdas.keys())
+
     df = pd.DataFrame(columns=headers)
     for bottom_seg in seg.traverse_to_rank(bottom_rank):
         row_dict = {}

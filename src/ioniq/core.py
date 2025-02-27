@@ -69,7 +69,11 @@ class AbstractSegmentTree(object):
                 #     attributes["sampling_freq"]=\
                 #        self.climb_to_rank('file').unique_features["sampling_freq"]
                 parser_results = parser.parse(**attributes, **kwargs)
-                children = [MetaSegment(start+self.start, end+self.start, parent=target,
+
+
+                print(f"parent start={target.start}, end={target.end}")
+
+                children = [MetaSegment(int(start)+target.start, int(end)+target.start, parent=target,
                                         rank=newrank, unique_features=unique_features)
                                         for start, end, unique_features in parser_results]
                 target.clear_children()
@@ -183,14 +187,14 @@ class AbstractSegmentTree(object):
         Or add children with no check
         """
         if self.start is not None and self.end is not None:
-        # if self.start != None and self.end != None:
+
             assert all([self.start <= child.start < child.end <= self.end for child in children]), \
                 f"Children's positions are outside the parent's range ({self.start}, {self.end})."
         else:
 
             assert all([child.n > 0 for child in children]), "Children segment length <= 0."
 
-        # Sort the list of children
+        # # Sort the list of children
         temp_children = sorted(self.children + children, key=lambda x: (x.start, x.end))
 
         assert all([child0.end <= child1.start for child0, child1 in

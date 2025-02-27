@@ -462,7 +462,8 @@ class SpeedyStatSplit(Parser):
                                self.false_positive_rate, self.prior_segments_per_second,
                                self.sampling_freq, self.cutoff_freq)
         results=parser.parse(current)
-        print([(seg.start,seg.end,{}) for seg in results])
+
+        #print([(seg.start,seg.end,{}) for seg in results])
         return [(seg.start,seg.end,{}) for seg in results]
 
     def parse_meta(self, current):
@@ -782,20 +783,18 @@ class IVCurveAnalyzer(Parser):
 
 
 class AutoSquareParser(Parser):
-    """
-    Class for building a straightforward pipeline of data analysis
-    to make it reusable with customized parameters
-    """
+
     required_parent_attributes = ["current", "eff_sampling_freq", "voltage"]
     _fractionable_attr = ["threshold_baseline"]
 
     def __init__(self, segment, starts=None, ends=None, threshold_baseline=0.7,
-                  duration_threshold=4, sampling_buffer=50, expected_conductance=1.9, rules=[]):
+                 duration_threshold=4, sampling_buffer=50, expected_conductance=1.9, rules=[]):
+        """
+        """
         super().__init__()
         self.segment = segment
         self.starts = starts
         self.ends = ends
-        # self.voltage_range = voltage_range
         self.threshold = threshold_baseline
         self.duration_threshold = duration_threshold
         self.sampling_buffer = sampling_buffer
@@ -806,16 +805,12 @@ class AutoSquareParser(Parser):
 
         results = []
         
-        expected_baseline = np.abs(voltage)*self.expected_conductance 
+        expected_baseline = np.abs(voltage) * self.expected_conductance
 
-        hist, edges = np.histogram(current, bins=100, range=(expected_baseline*0.5,expected_baseline*1.5))
+        hist, edges = np.histogram(current, bins=100, range=(expected_baseline*0.5, expected_baseline * 1.5))
         centers = edges[:-1] + (edges[1] - edges[0]) * 0.5
         I0guess = centers[np.argmax(hist)]
         Ithresh = I0guess * self.threshold
-        # if expected_baseline/1.2<I0guess <expected_baseline*1.2 :
-        #     return []
-
-        
 
         # lambda parser with dynamic rules
         lambda_parser = lambda_event_parser(
@@ -827,11 +822,10 @@ class AutoSquareParser(Parser):
         events = lambda_parser.parse(current)
         if len(events) == 0:
             return []
-        ignored=[]
+        ignored = []
         for i in range(len(events)):
             if i == len(events) - 1:
                 bstart = events[i].start + events[i].duration
-
                 bend = current.shape[0]
             else:
                 bstart = events[i].start + events[i].duration
@@ -839,19 +833,17 @@ class AutoSquareParser(Parser):
 
             baseline = current[bstart:bend]
 
-            
-        #     return []
             if baseline.size > 0:
                 events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
             else:
                 ignored.append(i)
                 continue
 
-            if not(expected_baseline/1.2<np.median(baseline) <expected_baseline*1.2) :
+            if not(expected_baseline / 1.2 < np.median(baseline) < expected_baseline * 1.2):
                 ignored.append(i)
                 continue
         events = [event for i, event in enumerate(events) if not (i in ignored)]
-            #events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
+
         if len(events) == 0:
             return []
         if events[-1].start + events[-1].duration == current.shape[0]:
@@ -863,7 +855,6 @@ class AutoSquareParser(Parser):
             return []
 
         # Adjust the events by removing transitions
-
         for event in events:
             diff = np.diff(current[event.start:event.start + event.duration])
             idxs = np.argwhere(diff > 0).ravel()
@@ -884,16 +875,14 @@ class AutoSquareParser(Parser):
             wstart = int(wstart)
             wend = int(wend)
 
+            # Append the unique featires of the events
             event.unique_features["wrap"] = current[wstart:wend]
-
-            # Unique features
             event.unique_features["mean"] = np.mean(current[event.start:event.end])
             event.unique_features["frac"] = 1 - (event.unique_features["mean"] / I0guess)
             event.unique_features["duration"] = event.duration
             event.unique_features["current"] = current[event.start:event.end]
             event.unique_features["start"] = event.start
-            event.unique_features["end"]=event.end
-
+            event.unique_features["end"] = event.end
 
             results.append((event.start, event.end, event.unique_features))
 
