@@ -2,12 +2,25 @@
 """
 Utility functions and classes for internal and external use
 """
-
+import glob
 import numpy as np
+import pandas as pd
 from dataclasses import dataclass, field
 import scipy.signal as signal
 from typing import Literal
 from ioniq.core import MetaSegment
+
+# try:
+#     import cupy
+#     import cupyx.scipy.signal as signal
+#     if not cupy.cuda.is_available():
+#         raise ImportError
+
+#     np = cupy
+# except ImportError:
+
+#     import numpy as np
+#     from scipy import signal
 
 class Singleton(type):
     """
@@ -97,8 +110,7 @@ def si_eval(value, unit=None, return_unit=False):
     :param return_unit: If True, the function returns a tuple with the numeric value and the unit.
     :type return_unit: bool, optional
     :return: The converted value, optionally with the unit if `return_unit` is True.
-    :rtype: float or tuple
-
+    :rtype: float(tuple)
     """
     # If value is a string, split it to separate the value from unit
     if isinstance(value, str):
@@ -233,4 +245,38 @@ class Trimmer:
                     rank=self.newrank,
                     parent=v
                 ))
+
+
+def extract_features(seg, bottom_rank, extractions: list[str], add_ons: dict = {}, lambdas={}):
+    """
+
+    :param seg:
+    :type seg: object
+    :param bottom_rank:
+    :type bottom_rank: str
+    :param extractions:
+    :param add_ons:
+    :param lambdas:
+    :return:
+    """
+    headers = extractions + list(add_ons.keys()) + list(lambdas.keys())
+
+    df = pd.DataFrame(columns=headers)
+    for bottom_seg in seg.traverse_to_rank(bottom_rank):
+        row_dict = {}
+        for feature in extractions:
+            row_dict[feature] = bottom_seg.get_feature(feature)
+        for feature, value in add_ons.items():
+            row_dict[feature] = value
+        for feature, lambda_func in lambdas.items():
+            row_dict[feature] = lambda_func(bottom_seg)
+        df.loc[len(df)] = row_dict
+    return df
+# extract_features(seg, bottom_rank='event',
+#              extractions=['mean', 'frac', 'duration', 'baseline', 'current', 'wrap', 'start'],
+#              add_ons={"sample_type": "MBP_D10"},
+#              lambdas={"Voltage": lambda seg: int(1000 * seg.get_feature("voltage")),
+#                       "start_time": lambda seg: seg.start / seg.get_feature("eff_sampling_freq")})
+
+
 
