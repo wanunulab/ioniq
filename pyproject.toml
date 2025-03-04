@@ -13,12 +13,13 @@ authors = [{name = "Ali Fallahi", email = "fallahi.a@northeastern.edu"}]
 
 dependencies = [
   "numpy>=2.0",
-  "Cython~=3.0.11",
+  "Cython>=3.0.11",
   "pytz~=2024.1",
-  "scipy~=1.14.1",
+  "scipy>=1.14.1",
   "platformdirs~=4.2.2",
-  "pyabf~=2.3.8",
+  "pyabf>=2.3.8",
   "pandas>=2.0"
+
 ]
 
 [project.optional-dependencies]
