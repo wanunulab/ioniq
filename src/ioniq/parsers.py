@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 """
-Contact: Jacob Schreiber
-         jacobtribe@soe.ucsc.com
-parsers.py
-
-This program will read in an abf file using read_abf.py and
-pull out the events, saving them as text files.
+Some of the parsers and the parser base class were adapted from the
+PyPore Package by Jacob Schreiber and Kevin Karplus (https://github.com/jmschrei/PyPore)
 """
 
 
@@ -34,6 +30,7 @@ from scipy.fft import fft
 import numpy as np
 import pyximport
 from ioniq.core import Segment, MetaSegment
+import abc
 from ioniq.cparsers import FastStatSplit
 pyximport.install(setup_args={'include_dirs': np.get_include()})
 AnyParser = TypeVar("AnyParser", bound="Parser")
@@ -44,7 +41,7 @@ AnyParser = TypeVar("AnyParser", bound="Parser")
 #########################################
 
 
-class Parser(object):
+class Parser(abc.ABC):
     """
     Class for parsing segments of data, used for processing
     segments of current data
@@ -52,7 +49,7 @@ class Parser(object):
     # override this with the required attributes to get
     # from the parent segment that the parser needs
     required_parent_attributes: list[str] = ['current']
-
+    @abc.abstractmethod
     def __init__(self):
         """
         Initialize a Parser instance
@@ -659,6 +656,7 @@ class NoiseFilterParser(Parser):
 
 class IVCurveParser:
     """
+    THIS CLASS IS NOT IMPLEMENTED YET! DO NOT USE.
     The class handles:
 
         1. Identifies a file where an IV curve is recorded based on the pattern.
@@ -722,8 +720,9 @@ class IVCurveParser:
         return match_region
 
 
-class IVCurveAnalyzer(Parser):
+class IVCurveAnalyzer(Parser): 
     """
+    THIS CLASS IS NOT IMPLEMENTED YET. DO NOT USE.
     Check for at Least Two Voltage Steps: confirm that the segment has at least two voltage steps.
 
     Divide into Voltage Segments: separate data into  voltage segments.
@@ -782,110 +781,152 @@ class IVCurveAnalyzer(Parser):
         n_subsegments = int(max(10, subsegment_duration))
 
 
+
 class AutoSquareParser(Parser):
-
+    """
+    Class for building a straightforward pipeline of data analysis
+    to make it reusable with customized parameters
+    """
     required_parent_attributes = ["current", "eff_sampling_freq", "voltage"]
-    _fractionable_attr = ["threshold_baseline"]
+    
 
-    def __init__(self, segment, starts=None, ends=None, threshold_baseline=0.7,
-                 duration_threshold=4, sampling_buffer=50, expected_conductance=1.9, rules=[]):
-        """
-        """
+    def __init__(self, threshold_baseline=0.7, expected_conductance=1.9,conductance_tolerance=1.2, wrap_padding:int=50, rules=[]):
+        
+        
         super().__init__()
-        self.segment = segment
-        self.starts = starts
-        self.ends = ends
+        # self.voltage_range = voltage_range
         self.threshold = threshold_baseline
-        self.duration_threshold = duration_threshold
-        self.sampling_buffer = sampling_buffer
+        self.wrap_padding = wrap_padding
+        self.conductance_tolerance=conductance_tolerance
         self.expected_conductance = expected_conductance
         self.rules = rules
 
     def parse(self, current, eff_sampling_freq, voltage):
-
+        sign=np.sign(voltage)
+        if np.isclose(sign,0.0,atol=1e-3):
+            sign=1
+        # print(voltage, sign,len(current))
         results = []
         
-        expected_baseline = np.abs(voltage) * self.expected_conductance
-
-        hist, edges = np.histogram(current, bins=100, range=(expected_baseline*0.5, expected_baseline * 1.5))
+        expected_baseline = voltage*sign*self.expected_conductance 
+        current_positive=sign*current
+        hist, edges = np.histogram(current_positive, bins=100, range=(expected_baseline*0.7,expected_baseline*1.4))
         centers = edges[:-1] + (edges[1] - edges[0]) * 0.5
         I0guess = centers[np.argmax(hist)]
         Ithresh = I0guess * self.threshold
+        # if expected_baseline/1.2<I0guess <expected_baseline*1.2 :
+        #     return []
+
+        
 
         # lambda parser with dynamic rules
         lambda_parser = lambda_event_parser(
             threshold=Ithresh,
             rules=[
-                      lambda event: 0 < event.mean < I0guess * 0.6,
+                      lambda event: 0 < event.mean < Ithresh*0.9,
                   ] + self.rules
         )
-        events = lambda_parser.parse(current)
+        events = lambda_parser.parse(current_positive)
         if len(events) == 0:
             return []
-        ignored = []
+        ignored=[]
         for i in range(len(events)):
+            
+            
+            
+            
+            """
+            objective: find a baseline region to calculate the event-specific baseline
+            cases: 
+                if the event is the last in a set or the only event:
+                    take the current between the end of the event and the end of the step
+                otherwise, there is at least one event after this event, 
+                    so take the current after the event up to the beginning of the next event as baseline.
+                
+            """
+            if (events[i].start==0) or (events[i].start+events[i].duration)==current_positive.shape[0]:
+                ignored.append(i)
+                continue
+
             if i == len(events) - 1:
                 bstart = events[i].start + events[i].duration
-                bend = current.shape[0]
+
+                bend = current_positive.shape[0]
             else:
                 bstart = events[i].start + events[i].duration
                 bend = events[i + 1].start
+            # print(i, bstart,bend)
+            baseline = current_positive[bstart:bend]
 
-            baseline = current[bstart:bend]
-
-            if baseline.size > 0:
+            
+            #     return []
+            if baseline.shape[0] > 0: 
                 events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
             else:
-                ignored.append(i)
+                ignored.append(i) # this event does not have a baseline, meaning it ended at the end of the step. dump it
                 continue
 
-            if not(expected_baseline / 1.2 < np.median(baseline) < expected_baseline * 1.2):
+            if not(expected_baseline/self.conductance_tolerance<events[i].unique_features["baseline"] <expected_baseline*self.conductance_tolerance) :
                 ignored.append(i)
                 continue
-        events = [event for i, event in enumerate(events) if not (i in ignored)]
-
-        if len(events) == 0:
-            return []
-        if events[-1].start + events[-1].duration == current.shape[0]:
-            events.pop(-1)
-        if len(events) == 0:
-            return []
-        if events[0].start == 0:
-            events.pop(0)
-            return []
-
-        # Adjust the events by removing transitions
-        for event in events:
-            diff = np.diff(current[event.start:event.start + event.duration])
+            diff = np.diff(current_positive[events[i].start:events[i].start + events[i].duration])
             idxs = np.argwhere(diff > 0).ravel()
             if idxs.size == 0:
-                # Skip this event if no positive difference is found
+                # Skip this event if no positive difference is found 
+                ignored.append(i)
                 continue
 
-            new_start = event.start + idxs[0]
-            new_end = event.start + idxs[-1] + 1
-
-            event.start = new_start
-            event.end = new_end
-            event.duration = (new_end - new_start) / eff_sampling_freq
-
-            wstart = max(event.start - 50, 0)
-            wend = min(event.start + event.duration + 50, current.shape[0])
-
-            wstart = int(wstart)
+            events[i].end=events[i].start+events[i].duration # assign temporary end of event to get the wrapping
+            wstart = max(events[i].start -self.wrap_padding, 0) 
+            if i>0:
+                wstart = max(wstart,events[i-1].start+events[i-1].duration) #if previous event is too close, limit the wrap start
+            wend = min(events[i].end + self.wrap_padding, current_positive.shape[0]) 
+            if i<len(events)-1:
+                wend = min(wend, events[i+1].start) #if next event is too close, limit the wrap end
+            wstart = int(wstart) 
             wend = int(wend)
 
-            # Append the unique featires of the events
-            event.unique_features["wrap"] = current[wstart:wend]
+            events[i].unique_features["wrap"] = current_positive[wstart:wend]
+            
+            new_start = events[i].start + idxs[0]
+            new_end = events[i].start + idxs[-1] + 1
+
+            events[i].start = new_start
+            events[i].end = new_end
+            # events[i].duration=events[i].start-events[i].end
+        # print(ignored)
+        # print(len(events))
+        # for event in events:
+            # print(event.start,event.end)    
+        events = [event for i, event in enumerate(events) if not (i in ignored)]
+        # print(len(events))
+        # print("survived:",[(event.start,event.end) for event in events])
+        for event in events:
+            assert hasattr(event,"unique_features"), f"Faulty event situation at {event.start},{event.end}"
+            assert ("baseline" in event.unique_features) and "wrap" in event.unique_features,f"Event with no baseline or wrapping slipped through the parser at {event.start},{event.end}"
+            #events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
+        
+
+        # Adjust the events by removing transitions
+
+        
+        for event in events:
+            # event.duration = (event.end - event.start) / eff_sampling_freq
+
+            # Unique features
+            event.unique_features["baseline"]*=sign
             event.unique_features["mean"] = np.mean(current[event.start:event.end])
-            event.unique_features["frac"] = 1 - (event.unique_features["mean"] / I0guess)
-            event.unique_features["duration"] = event.duration
-            event.unique_features["current"] = current[event.start:event.end]
-            event.unique_features["start"] = event.start
-            event.unique_features["end"] = event.end
+            event.unique_features["frac"] = 1 - (event.unique_features["mean"] / event.unique_features["baseline"])
+            # event.unique_features[""] = event.end-event.start
+            # event.unique_features["current"] = current[event.start:event.end]
+            # event.unique_features["start"] = event.start
+            # event.unique_features["end"]=event.end
+
 
             results.append((event.start, event.end, event.unique_features))
 
         return results
+    
+
 
 

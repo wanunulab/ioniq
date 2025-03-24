@@ -71,7 +71,7 @@ class AbstractSegmentTree(object):
                 parser_results = parser.parse(**attributes, **kwargs)
 
 
-                print(f"parent start={target.start}, end={target.end}")
+                # print(f"parent start={target.start}, end={target.end}")
 
                 children = [MetaSegment(int(start)+target.start, int(end)+target.start, parent=target,
                                         rank=newrank, unique_features=unique_features)
