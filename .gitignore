@@ -167,3 +167,4 @@ cython_debug/
 
 .DS_Store
 src/ioniq/cparsers.c
+src/ioniq/cparsers.c
