@@ -6,7 +6,7 @@ This is yet another nanopore signal analysis framework. Why? because we need cus
 ---
 ### installation for development:
 Ioniq has been tested for compatibility with python 3.10 to 3.12. Download python 3.12 [here](https://www.python.org/downloads/).
-Temporarily while the package is under development, clone the repo, `cd` into the folder, and install via 
+Temporarily while the package is under development, clone the repo with git or download it, `cd` into the folder, and install via 
 ```
 pip install -e .
 ```
