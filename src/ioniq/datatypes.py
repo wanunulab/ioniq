@@ -2,12 +2,6 @@
 """
 Data structure definitions and session file management for analysis.
 
-Classes:
-
-- **SessionFileManager**: A singleton-based root segment that manages metadata. Inherits from `MetaSegment`.
-
-- **TraceFile**: Represents an individual data file as a `Segment`, holding
-  current and voltage data, segment metadata, and hierarchical structure of voltage steps.
 """
 
 import datetime
