@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 """
-DataTypes module
+Data structure definitions and session file management for analysis.
+
+Classes:
+
+- **SessionFileManager**: A singleton-based root segment that manages metadata. Inherits from `MetaSegment`.
+
+- **TraceFile**: Represents an individual data file as a `Segment`, holding
+  current and voltage data, segment metadata, and hierarchical structure of voltage steps.
 """
 
 import datetime
@@ -22,15 +29,23 @@ import uuid
 
 class SessionFileManager(MetaSegment, metaclass=Singleton):
     """
-    Class inherits rom MetaSegment and uses the Singleton
-    to create only one instance of the class.
+    Singleton-based session manager for hierarchical data.
+
+    This class inherits from `MetaSegment` and uses the `Singleton` metaclass
+    to ensure only one instance exists during a given session. It serves as
+    the root segment for a data analysis session and is responsible for managing
+    metadata and registered "affectors" (i.e., objects that modify or
+    interact with the session).
+
     """
     rank = "root"  # set the rank to "root"
 
     @json_logger.log
     def __init__(self) -> None:
         """
-        Initialize methods
+        Initialize the session manager.
+
+        Sets the session start time and prepares the affector log structure.
         """
         super().__init__(self, end=2)  # end = 2: Segment end at position 2???
         self.unique_features["SessionStartTime"] = datetime.datetime.now()
@@ -39,6 +54,17 @@ class SessionFileManager(MetaSegment, metaclass=Singleton):
     # make log management table. contains everything that has happened in this session
 
     def register_affector(self, affector):
+        """
+        Register an affector object that influences the session data.
+
+        Records metadata including class name, string representation, and timestamp,
+        and logs the event with a unique identifier.
+
+        :param affector: An object that modifies or interacts with the session.
+        :type affector: object
+        :return: A UUID string uniquely identifying the registered affector.
+        :rtype: str
+        """
 
         # generate a uuid
         new_uuid = str(uuid.uuid4())
@@ -62,26 +88,38 @@ class SessionFileManager(MetaSegment, metaclass=Singleton):
 
     def add_child(self, child: AnySegment) -> None:
         """
-        Add a single child
+        Add a single child segment to the session's hierarchy.
+
+        :param child: The segment to be added as a child.
+        :type child: AnySegment
         """
         self.children.append(child)
 
     def add_children(self, children: list[AnySegment]) -> None:
         """
-        Add multiple children
+        Add multiple child segments to the session.
+
+        :param children: A list of segments to be added as children.
+        :type children: list[AnySegment]
         """
         self.children.extend(children)
 
     def _set_children_nocheck(self, children: list[AnySegment]) -> None:
         """
-        Clear all children and add new without check
+        Replace all existing children with new ones without validation.
+
+        :param children: A list of new segments to set as children.
+        :type children: list[AnySegment]
         """
         self.children.clear()
         self.children = children
 
     def _remove(self, child):
         """
-        Remove a child from the children list
+        Remove a specific child segment from the session.
+
+        :param child: The child segment to be removed.
+        :type child: AnySegment
         """
         if child in self.children:
             self.children.remove(child)
@@ -89,14 +127,36 @@ class SessionFileManager(MetaSegment, metaclass=Singleton):
 
 class TraceFile(Segment):
     """
-    Class inherits from Segment and represents the file with the current dara and voltage
+    Data structure for representing a single trace file with current and optional voltage information.
+
+    This class inherits from `Segment` and encapsulates current and voltage data. It sets up segment metadata,
+    defines parent-child hierarchy, and optionally initializes child segments based on voltage steps.
+
+    Typical usage includes assigning metadata and organizing hierarchical
+    data structures for downstream processing or visualization.
+
     """
 
     @json_logger.log
     def __init__(self, current: np.ndarray, voltage=None, rank="file", parent=None,
                  unique_features: dict = {}, metadata: dict = {}):
         """
-        "vstep" = Voltage step
+        If voltage steps are provided, corresponding child segments of rank "vstep" are created.
+
+        :param current: current array.
+        :type current: numpy.ndarray
+        :param voltage: Optional list of tuples containing (start, end) index pairs and voltage values.
+                        Used to create child segments for each voltage step.
+        :type voltage: list[tuple[tuple[int, int], float]] or None
+        :param rank: Segment rank label, defaults to "file".
+        :type rank: str
+        :param parent: Optional parent segment to which this trace belongs.
+        :type parent: Segment or None
+        :param unique_features: Dictionary of metadata such as sampling frequency.
+        :type unique_features: dict
+        :param metadata: Additional metadata.
+        :type metadata: dict
+
 
         """
         super().__init__(current)
