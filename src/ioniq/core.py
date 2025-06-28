@@ -4,6 +4,8 @@
     https://github.com/jmschrei/PyPore
 This holds the core data types which may be abstracted in
 many different applications.
+This module defines a tree-based framework for representing, parsing, and annotating
+segments of ionic current data.
 """
 
 
@@ -22,7 +24,12 @@ AnySegment = TypeVar("AnySegment", bound="AbstractSegmentTree")
 
 class AbstractSegmentTree(object):
     """
-    Class to manage a tree structure of segments.
+    Class for managing hierarchical segments.
+
+    This class supports a tree structure where each segment can contain multiple
+    child segments, enabling recursive parsing and analysis of nested data.
+    It provides utilities to manage relationships between segments, apply parsers,
+    and extract subsegments by rank.
     """
     # Memory optimization by limiting attributes
     __slots__ = ('parent', 'children', 'start', 'end', 'rank', '__dict__')
@@ -47,11 +54,15 @@ class AbstractSegmentTree(object):
         Parses the data in the segment or at a particular rank of child segments
         into children segments with a new rank.
 
-        :param parser: a Parser subclass instance
-        :param newrank: The rank string to be assigned to the newly found children
-        :param at_child_rank: Determines whether to traverse the children tree down to a given rank
-        and apply the parser to those children or (if None) parse this instance, defaults to None
-        :return: True if no errors were encountered, else false
+        :param parser: A parser object with a `parse` method and required input attributes.
+        :type parser: Parser
+        :param newrank: Rank to assign to the newly created child segments.
+        :type newrank: str
+        :param at_child_rank: Determines whether to traverse the children tree down to a given rank.
+        :type at_child_rank: str or None
+        :param kwargs: Additional arguments to pass to the parser.
+        :return: True if parsing was successful, otherwise raises an exception.
+        :rtype: bool
         """
         try:
             # TODO: get the features from parsers (test)
@@ -256,11 +267,16 @@ class MetaSegment(AbstractSegmentTree):
                  parent: AnySegment | None = None, rank: str | None = None,
                  unique_features: dict | None = {}, **kwargs):
         """
-        Initialize the segment data
-        :param: start, end = boundaries of the segment
-        :param: parent: stores the parent segment
-        :param: unique_features: a dictionary of metadata
-        :rank: rank of segment
+        :param start: Start index of the segment.
+        :type start: int
+        :param end: End index of the segment.
+        :type end: int
+        :param parent: Parent segment in the tree (optional).
+        :type parent: AbstractSegmentTree or None
+        :param rank: Rank identifier for this segment (optional).
+        :type rank: str or None
+        :param unique_features: Dictionary of metadata features.
+        :type unique_features: dict
         """
         super().__init__()
         # pointers to lower level segments (sub-segments)
@@ -468,7 +484,11 @@ class Segment(AbstractSegmentTree):
         The segment must have a list of ionic current, of which it stores some statistics about.
         It may also take in as many keyword arguments as needed, such as start time or duration
         if already known. Cannot override statistical measurements.
+        :param current: Numpy array of current data points.
+        :type current: np.ndarray
+        :param kwargs: Additional attributes like 'start', 'end', 'rank', etc.
         """
+
         super().__init__()
         self.current = current
         for key, value in kwargs.items():
