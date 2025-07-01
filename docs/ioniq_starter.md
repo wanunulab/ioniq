@@ -22,7 +22,7 @@ This guide walks you through the steps to download, set up, and install the Ioni
 - Launch the **VS Code** application.
 - Click **File > Open...** and select the unzipped `ioniq` folder.
 
-![](../../../Desktop/Screenshot 2025-07-01 at 11.24.59 AM.png)
+![](../images/open_repo_in_vs.png)
 
 Now your working directory in VS Code is set to the `ioniq` folder.
 
