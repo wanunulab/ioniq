@@ -12,10 +12,6 @@ First, you need a platform (Integrated Development Environment) to run Ioniq. **
 
 ## Installing VS Code
 
-### Step 1: Download VS Code
-
-Visit the [official VS Code website](https://code.visualstudio.com/) and download the version appropriate for your operating system.
-
 ---
 
 <details>
@@ -23,7 +19,11 @@ Visit the [official VS Code website](https://code.visualstudio.com/) and downloa
 
 ### 1. Install VS Code
 
-- Go to the [VS Code website](https://code.visualstudio.com/), download the installer, and run it.
+- Go to the [VS Code website](https://code.visualstudio.com/), download.
+- Run the installer.
+- On the first screen, **check the boxes Add Python to PATH and Register code ...**.
+![](../images/add_path_vscode.png)
+- Finish installation.
 
 ### 2. Install Required Extensions
 
@@ -33,7 +33,7 @@ A few package requirements include C++ extensions and compilers.
 - Click the **Extensions** icon on the left sidebar.
 - Find and install the extension shown below:
 
-![](../images/windows_extent.png)
+![](../images/window_extent.png)
 
 ### 3. Install Compilers (Build Tools)
 
@@ -43,14 +43,15 @@ A few package requirements include C++ extensions and compilers.
 
 ![](../images/windows_build_tool.png)
 
-- This will launch the Visual Studio Installer.
+- Run downloaded Installer.
 - In the dialog, check the **Desktop development with C++** workload and click **Install**.
 
 ![](../images/windows_compiler.png)
-### 4. Install Python
+### 4. Install Python. 
+#### *Skip this step if you already have Python!*
 
 - Visit [Python Downloads for Windows](https://www.python.org/downloads/windows/).
-- Choose a version between **3.10 and 3.12**.
+- Choose a version between **3.10 and 3.12** and download.
 - Run the installer.
 - On the first screen, **check the box for "Add Python to PATH"**.
 - Click **Install Now**.
@@ -64,7 +65,7 @@ A few package requirements include C++ extensions and compilers.
 <details>
 <summary><strong>Linux Users</strong></summary>
 
-### 1. Download and Install VS Code
+### 1. Download and Install VS_Code
 
 - Go to the [VS Code download page](https://code.visualstudio.com/download).
 - Download the `.deb` package.
@@ -100,6 +101,7 @@ sudo dpkg -i code_1.XXX.deb
 > Replace `code_1.XXX.deb` with the actual filename.
 
 ### 3. Install Python
+#### *Skip this step if you already have Python!*
 
 - Visit the [Python Downloads page](https://www.python.org/downloads/).
 - Download a version between **3.10 and 3.12**.
@@ -129,7 +131,7 @@ sudo apt install python3.XX
 - Open VS Code from the Applications folder or Launchpad.
 
 ### 2. Install Python
-
+#### *Skip this step if you already have Python!*
 - Visit the [Python Downloads page](https://www.python.org/downloads/).
 - Choose a version between **3.10 and 3.12**.
 - Double-click the downloaded `.pkg` file to launch the installer.
