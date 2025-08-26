@@ -17,7 +17,7 @@ from itertools import chain
 from typing import TypeVar
 from functools import cached_property
 import numpy as np
-#from IonTrace.Parsers.parsers import AnyParser
+
 
 AnySegment = TypeVar("AnySegment", bound="AbstractSegmentTree")
 

@@ -1,7 +1,7 @@
 # cparsers.pyx
 # Contact: Jacob Schreiber
 #          jmschreiber91@gmail.com
-# modified for ioniq by Ali Fallahi
+# modified for ionique by Ali Fallahi
 '''
 This contains cython implementations of ionic current parsers which are in
 parsers.py. Currently the only parser is StatSplit, which is implemented
@@ -15,7 +15,7 @@ from libc.math cimport log
 cimport cython
 
 from itertools import tee, chain
-from ioniq.core import Segment, MetaSegment
+from ionique.core import Segment, MetaSegment
 
 # Implement the max and min functions as cython
 cdef inline int int_max( int a, int b ): return a if a >= b else b

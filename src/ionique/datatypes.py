@@ -6,9 +6,9 @@ Data structure definitions and session file management for analysis.
 
 import datetime
 import numpy as np
-from ioniq.core import MetaSegment, AnySegment, Segment
-from ioniq.utils import Singleton
-from ioniq.setup_log import json_logger
+from ionique.core import MetaSegment, AnySegment, Segment
+from ionique.utils import Singleton
+from ionique.setup_log import json_logger
 import uuid
 
 

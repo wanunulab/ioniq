@@ -8,13 +8,13 @@ processing workflows.
 These tools are intended for both internal processing and external use cases such as analysis
 pipelines and API integrations.
 """
-import glob
+
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass, field
 import scipy.signal as signal
 from typing import Literal
-from ioniq.core import MetaSegment
+from ionique.core import MetaSegment
 
 # try:
 #     import cupy

@@ -35,9 +35,9 @@ from scipy import signal
 from scipy.fft import fft
 import numpy as np
 import pyximport
-from ioniq.core import Segment, MetaSegment
+from ionique.core import Segment, MetaSegment
 import abc
-from ioniq.cparsers import FastStatSplit
+from ionique.cparsers import FastStatSplit
 pyximport.install(setup_args={'include_dirs': np.get_include()})
 AnyParser = TypeVar("AnyParser", bound="Parser")
 
