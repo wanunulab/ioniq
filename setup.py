@@ -4,7 +4,7 @@ import numpy as np
 
 extensions = [
     Extension(
-        "ioniq.cparsers", ["src/ioniq/cparsers.pyx"], include_dirs=[np.get_include()])
+        "ionique.cparsers", ["src/ionique/cparsers.pyx"], include_dirs=[np.get_include()])
 ]
 
 setup(

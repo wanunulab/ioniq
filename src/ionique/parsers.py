@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 """
+Parser module for event and state segmentation in current recordings.
+This module provides a framework for parsing current trace data. It includes an abstract base `Parser` class
+and multiple concrete parser implementations for detecting spikes, noise, square pulses, and other event
+structures in ionic current signals.
+
 Some of the parsers and the parser base class were adapted from the
 PyPore Package by Jacob Schreiber and Kevin Karplus (https://github.com/jmschrei/PyPore)
+
 """
 
 
@@ -29,9 +35,9 @@ from scipy import signal
 from scipy.fft import fft
 import numpy as np
 import pyximport
-from ioniq.core import Segment, MetaSegment
+from ionique.core import Segment, MetaSegment
 import abc
-from ioniq.cparsers import FastStatSplit
+from ionique.cparsers import FastStatSplit
 pyximport.install(setup_args={'include_dirs': np.get_include()})
 AnyParser = TypeVar("AnyParser", bound="Parser")
 
@@ -43,8 +49,12 @@ AnyParser = TypeVar("AnyParser", bound="Parser")
 
 class Parser(abc.ABC):
     """
-    Class for parsing segments of data, used for processing
-    segments of current data
+    This class defines the interface and shared utility methods for parser implementations.
+    Parsers are used to segment  ionic current data
+    into structured regions of interest (events).
+
+    Subclasses should implement the `parse` method and define any additional logic
+    required to detect features in the data.
     """
     # override this with the required attributes to get
     # from the parent segment that the parser needs
@@ -194,6 +204,13 @@ class Parser(abc.ABC):
 
 
 class SpikeParser(Parser):
+    """
+    A parser for detecting spike-like events in ionic current data.
+
+    This parser wraps `scipy.signal.find_peaks`, supporting thresholds
+    for features like peak height, prominence, and width. It computes event characteristics such
+    as dwell time, relative prominence, and peak positions.
+    """
     required_parent_attributes = ["current", "sampling_freq", "mean", "start", "std"]
     _fractionable_attrs = ['height', 'threshold', 'prominence']
     _time_attrs = ['distance', 'prominence', 'width', 'wlen', 'plateau_size']
@@ -204,7 +221,31 @@ class SpikeParser(Parser):
                  wlen=None, rel_height: float = 0.5, plateu_size=None,
                  fractional: bool = True) -> None:
         # Add super()__init__ to isinitate class PArser?
-        #super().__init__()
+        # super().__init__()
+        """
+        Initialize the SpikeParser.
+
+        :param height: Minimum spike height.
+        :type height: float or tuple or None
+        :param threshold: Minimum vertical threshold.
+        :type threshold: float or tuple or None
+        :param distance: Minimum horizontal distance between peaks.
+        :type distance: float or tuple or None
+        :param prominence: Minimum peak prominence.
+        :type prominence: float or tuple or None
+        :param prominence_snr: Alternative to prominence, specified as a tuple of signal-to-noise (SNR) ratios.
+        :type prominence_snr: tuple or None
+        :param width: Full width at half maximum of the peak.
+        :type width: float or tuple or None
+        :param wlen: Width of the window used to calculate prominence.
+        :type wlen: float or None
+        :param rel_height: Relative height used in width calculation (range 0 to 1).
+        :type rel_height: float
+        :param plateu_size: Minimum length of a flat-topped peak.
+        :type plateu_size: float or None
+        :param fractional: Whether to interpret height, prominence, etc., as a fraction of the signal mean.
+        :type fractional: bool
+        """
         self._height = height
         self._threshold = threshold
         self._distance = distance
@@ -312,6 +353,12 @@ class MemoryParse(object):
     database cache, to reconstruct a parsed file from "memory.
     """
     def __init__(self, starts, ends):
+        """
+        :param starts: A list of start indices for each segment.
+        :type starts: list[int]
+        :param ends: A list of end indices corresponding to each start index.
+        :type ends: list[int]
+        """
         self.starts = starts
         self.ends = ends
 
@@ -330,6 +377,13 @@ class lambda_event_parser(Parser):  # Rename class to Upper case!
     """
 
     def __init__(self, threshold=90, rules=None):
+        """
+        :param threshold: The threshold for detecting events (e.g., current < threshold).
+        :type threshold: float
+        :param rules: A list of lambda functions that accept an event and return a bool.
+        :type rules: list[callable] or None
+
+        """
         super().__init__()  # Add super()__init__ to isinitate class PArser?
         self.threshold = threshold
         self.rules = rules or [lambda event: event.duration > 100000,
@@ -392,6 +446,8 @@ def pairwise(iterable):
 
 class SpeedyStatSplit(Parser):
     """
+    A parser wrapper for the Cython-accelerated `FastStatSplit` algorithm.
+
     See cparsers.pyx FastStatSplit for full documentation. This is just a
     wrapper for the cyton implementation to add a GUI.
     """
@@ -766,7 +822,6 @@ class IVCurveAnalyzer(Parser):
 
     def _simple_stats(self, current):
         return np.mean(current), np.tsd(current)
-
     def _extra_stats(self, current):
         """
         divide segment into n subsegments (default 10 or 0.1s, whichever is longer),
@@ -781,17 +836,14 @@ class IVCurveAnalyzer(Parser):
         n_subsegments = int(max(10, subsegment_duration))
 
 
-
 class AutoSquareParser(Parser):
     """
     Class for building a straightforward pipeline of data analysis
     to make it reusable with customized parameters
     """
     required_parent_attributes = ["current", "eff_sampling_freq", "voltage"]
-    
 
     def __init__(self, threshold_baseline=0.7, expected_conductance=1.9,conductance_tolerance=1.2, wrap_padding:int=50, rules=[]):
-        
         
         super().__init__()
         # self.voltage_range = voltage_range
@@ -817,8 +869,6 @@ class AutoSquareParser(Parser):
         # if expected_baseline/1.2<I0guess <expected_baseline*1.2 :
         #     return []
 
-        
-
         # lambda parser with dynamic rules
         lambda_parser = lambda_event_parser(
             threshold=Ithresh,
@@ -831,9 +881,7 @@ class AutoSquareParser(Parser):
             return []
         ignored=[]
         for i in range(len(events)):
-            
-            
-            
+
             
             """
             objective: find a baseline region to calculate the event-specific baseline
@@ -858,7 +906,6 @@ class AutoSquareParser(Parser):
             # print(i, bstart,bend)
             baseline = current_positive[bstart:bend]
 
-            
             #     return []
             if baseline.shape[0] > 0: 
                 events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
@@ -905,11 +952,8 @@ class AutoSquareParser(Parser):
             assert hasattr(event,"unique_features"), f"Faulty event situation at {event.start},{event.end}"
             assert ("baseline" in event.unique_features) and "wrap" in event.unique_features,f"Event with no baseline or wrapping slipped through the parser at {event.start},{event.end}"
             #events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
-        
-
         # Adjust the events by removing transitions
 
-        
         for event in events:
             # event.duration = (event.end - event.start) / eff_sampling_freq
 
@@ -921,12 +965,7 @@ class AutoSquareParser(Parser):
             # event.unique_features["current"] = current[event.start:event.end]
             # event.unique_features["start"] = event.start
             # event.unique_features["end"]=event.end
-
-
             results.append((event.start, event.end, event.unique_features))
 
         return results
-    
-
-
 

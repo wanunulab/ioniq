@@ -7,7 +7,7 @@ Ioniq: A Nanopore Signal Analysis Framework
 ==========================================
 
 **Authors:**
-Ali Fallahi
+Ali Fallahi, Dinara Boyko
 
 **Date:**
 Feb 11, 2025
@@ -62,11 +62,13 @@ Future Development
 - **Additional analysis modules** for extended event detection and pattern recognition.
 - **Integration with Jupyter Notebooks** for interactive visualization.
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents:
 
    modules
+
    install_beginner.rst
+   signal_process
 
 Indices and tables
 ==================

@@ -1,14 +1,20 @@
 #!/usr/bin/env python
 """
-Utility functions and classes for internal and external use
+Signal Processing and Data Extraction Utilities
+
+This module provides a set of utility functions and classes designed for use in signal
+processing workflows.
+
+These tools are intended for both internal processing and external use cases such as analysis
+pipelines and API integrations.
 """
-import glob
+
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass, field
 import scipy.signal as signal
 from typing import Literal
-from ioniq.core import MetaSegment
+from ionique.core import MetaSegment
 
 # try:
 #     import cupy
@@ -21,6 +27,7 @@ from ioniq.core import MetaSegment
 
 #     import numpy as np
 #     from scipy import signal
+
 
 class Singleton(type):
     """
@@ -58,20 +65,29 @@ class Singleton(type):
 
 def split_voltage_steps(voltage: np.ndarray, n_remove=0, as_tuples=False):
     """
-    Split the voltage signal into steps.
+    Split a voltage signal into segments based on step changes.
 
-    This function splits the signal at the points where the voltage changes.
+    This function detects changes in the voltage signal and splits it into individual
+    segments (or steps) wherever a change in value occurs. It is useful in analyzing
+    stepwise voltage protocols.
 
-    :param voltage: The voltage signal.
+    Optionally, a number of initial samples can be removed from each segment using the
+    `n_remove` parameter. The output can either be two separate arrays of start and end
+    indices, or a list of tuples representing each segment.
+
+    :param voltage: 1D voltage signal array to be segmented.
     :type voltage: numpy.ndarray
-    :param n_remove: Number of points to remove from the start of each split, defaults to 0.
+    :param n_remove: Number of samples to remove from the start of each split. Defaults to 0.
     :type n_remove: int
-    :param as_tuples: Return the splits as tuples of start and end indices, defaults=False.
+    :param as_tuples: If True, returns a list of (start, end) index tuples. If False, returns two arrays: start_indices and end_indices. Defaults to False.
     :type as_tuples: bool
-    :raises ValueError: If `n_remove` is negative or larger than the start of the voltage changes.
-    :return: Start and end indices of the splits.
-    :rtype: tuple of numpy.ndarray or list of tuple if as_tuples=True
+    :raises ValueError:  If `n_remove` is negative or larger than the start of the voltage changes.
+    :return: Either:
+              - A tuple of (start_indices, end_indices), where each is a numpy array of indices.
+              - A list of (start, end) tuples if `as_tuples=True`.
+    :rtype: tuple[numpy.ndarray, numpy.ndarray] or list[tuple[int, int]]
     """
+
     # Check if the current or voltage arrays are empty
     if not voltage.size:
         return []
@@ -96,21 +112,26 @@ def split_voltage_steps(voltage: np.ndarray, n_remove=0, as_tuples=False):
 
 def si_eval(value, unit=None, return_unit=False):
     """
-    Convert a value with SI prefix to its equivalent value.
+    Evaluate and convert a value with an SI unit prefix to its numeric base value.
 
-    If the `value` is a string, it splits the numeric value and the unit and
-    applies SI prefix multiplier.
+    This function handles both string-based and numeric values with
+    SI (International System of Units) prefixes such as "k" (kilo), "M" (mega), "μ" (micro), etc.
+    It multiplies the input value by the appropriate factor based on the SI prefix.
 
-    If the value is already numeric, it directly applies SI prefix multiplier.
+    This utility is useful when parsing human-readable measurement strings or standardizing
+    units across data pipelines that mix strings and numeric formats.
 
-    :param value: The value to be converted.
+    :param value: The value to be converted. Can be a string like "1.2 kHz" or a numeric value (int or float).
     :type value: str or float
-    :param unit: The unit type, default=None
+    :param unit: The unit string (e.g., "kHz", "mV"). Required only if `value` is a numeric type.
     :type unit: str, optional
-    :param return_unit: If True, the function returns a tuple with the numeric value and the unit.
+    :param return_unit: If True, returns a tuple containing the converted numeric value and the base unit (e.g., 'Hz').
+                        If False, only the numeric value is returned.
     :type return_unit: bool, optional
-    :return: The converted value, optionally with the unit if `return_unit` is True.
-    :rtype: float(tuple)
+    :raises ValueError: If the input format is invalid or the unit is missing for numeric input.
+    :raises TypeError: If the value is neither a string nor a numeric type.
+    :return: The converted value, optionally paired with the base unit.
+    :rtype: float or tuple[float, str]
     """
     # If value is a string, split it to separate the value from unit
     if isinstance(value, str):
@@ -180,6 +201,28 @@ def _si_multiplier_unit(unitstr: str) -> float:
 
 @dataclass
 class Filter:
+    """
+    This class allows a user to apply low-pass, high-pass,
+    band-pass, or band-stop filters using standard filter types (Butterworth or Bessel).
+    Filters are implemented using second-order sections (SOS) for numerical stability and
+    can be applied in either forward-only or bidirectional mode.
+
+    :param cutoff_frequency: The cutoff frequency or frequency band for the filter in Hz.
+                            For band filters, provide the band center or list of [low, high] values.
+    :type cutoff_frequency: float or list[float]
+    :param filter_type: The type of filter to apply. Options are "lowpass", "highpass", "bandpass", or "bandstop".
+    :type filter_type: Literal["lowpass", "highpass", "bandpass", "bandstop"]
+    :param filter_method: The filter method. Supported options: "butter" (Butterworth), "bessel". Defaults to "butter".
+    :type filter_method: Literal["butter", "bessel"]
+    :param order: The order of the filter. Must be >= 1. Defaults to 2.
+    :type order: int
+    :param bidirectional: If True, applies filtering forward and backward using `sosfiltfilt`.
+                          If False, uses causal `sosfilt`. Defaults to True.
+    :type bidirectional: bool
+    :param sampling_frequency: Sampling frequency of the signal in Hz.
+    :type sampling_frequency: float, optional
+
+    """
     cutoff_frequency: float
     filter_type: Literal["lowpass", "highpass", "bandpass", "bandstop"]
     filter_method: Literal["butter", "bessel"] = field(default="butter")
@@ -224,11 +267,27 @@ class Filter:
         else:
             current[:] = signal.sosfilt(self.sos, current, axis=0)
 
-        # TODO: add a copy of the file to avoid reopening the file
+
 
 
 @dataclass
 class Trimmer:
+    """
+    Segment trimming utility for hierarchical signal data.
+
+    This class operates on a segment tree. It traverses segments of a given rank (e.g., "vstep") and trims
+    a fixed number of samples from the start of each segment. The resulting trimmed segments are added
+    as new child segments with a specified new rank (e.g., "vstepgap").
+
+    This is useful when initial samples of each segment include artifacts that should be excluded from analysis.
+
+    :param samples_to_remove: Number of samples to trim from the beginning of each segment.
+    :type samples_to_remove: int
+    :param rank: The hierarchical rank of segments to target for trimming. Defaults to "vstep".
+    :type rank: str
+    :param newrank: The rank name to assign to newly created trimmed child segments. Defaults to "vstepgap".
+    :type newrank: str
+    """
     samples_to_remove: int
     rank: str = "vstep"
     newrank: str = "vstepgap"
@@ -249,15 +308,28 @@ class Trimmer:
 
 def extract_features(seg, bottom_rank, extractions: list[str], add_ons: dict = {}, lambdas={}):
     """
+    Extract features from hierarchical segments into a DataFrame.
 
-    :param seg:
+    Traverses a hierarchical segment structure down to `bottom_rank`, then collects feature values
+    from each segment. Static features are retrieved via `get_feature()`, constants can be added via
+    `add_ons`, and custom computed features can be provided through `lambdas`.
+
+    This is useful for generating structured datasets from annotated traces for statistical analysis or
+    machine learning.
+
+    :param seg: The root segment or trace object containing a hierarchical structure. It must implement `traverse_to_rank()` and support `get_feature()`.
     :type seg: object
-    :param bottom_rank:
+    :param bottom_rank: The rank name of the lowest-level segments from which to extract features.
     :type bottom_rank: str
-    :param extractions:
-    :param add_ons:
-    :param lambdas:
-    :return:
+    :param extractions: List of feature names to extract directly using `get_feature()` on each segment.
+                        Common examples include: 'mean', 'frac', 'duration', 'baseline', 'current', 'wrap', 'start'.
+    :type extractions: list[str]
+    :param add_ons: A dictionary of fixed key-value pairs to include as constant columns in the resulting DataFrame.
+    :type add_ons: dict
+    :param lambdas: A dictionary mapping column names to lambda functions that compute derived values from each segment.
+    :type lambdas: dict
+    :return: A pandas DataFrame where each row corresponds to a bottom-rank segment and columns represent extracted and computed features.
+    :rtype: pandas.DataFrame
     """
     headers = extractions + list(add_ons.keys()) + list(lambdas.keys())
 

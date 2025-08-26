@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 """
-Module io.py manages IO process
+Input/output utilities for data files.
+
+This module provides an interface for loading, parsing, and preprocessing
+signal data from various file formats (e.g., `.edh`, `.opt`, `.abf`, `.dat`, `.xml`). It defines a base reader class
+and concrete implementations that handle format-specific logic, metadata extraction,
+data alignment, and optional preprocessing steps.
+
+This module is central to converting raw experimental data into analyzable form.
 """
 import xml.etree.ElementTree as ET
 import os
@@ -91,9 +98,12 @@ class AbstractFileReader(object):
 
 class EDHReader(AbstractFileReader):
     """
-    A class for reading and processing .edh files, including parsing
-    metadata and extracting current and voltage data
+    Reader class for loading `.edh` data files and their associated current data.
 
+    This class parses the `.edh` header file and automatically loads the corresponding signal data
+    (either from `.abf` or `.dat` files in the same directory). It extracts metadata, converts raw
+    current and voltage data to SI units, and supports optional preprocessing steps such as
+    voltage step segmentation, downsampling, and signal filtering.
     """
 
     ext = ".edh"
@@ -103,9 +113,24 @@ class EDHReader(AbstractFileReader):
     voltage_multiplier = 1e-3  # voltage is stored in mV in the datafile
 
     @json_logger.log
-    def __init__(self, filename, voltage_compress=False, n_remove=0, downsample=1, prefilter=None):
+    def __init__(self, edh_filename, voltage_compress=False, n_remove=0, downsample=1, prefilter=None):
+        """
+        Initialize the EDHReader and load signal data from associated files.
+
+        :param edh_filename: Path to the `.edh` header file.
+        :type edh_filename: str
+        :param voltage_compress: If True, splits signal into segments based on voltage steps.
+        :type voltage_compress: bool
+        :param n_remove: Number of samples to remove from the beginning of each voltage step.
+        :type n_remove: int
+        :param downsample: Downsampling factor to reduce data size.
+        :type downsample: int
+        :param prefilter: Callable to apply preprocessing to the current signal.
+        :type prefilter: callable or None
+
+        """
         super().__init__()
-        self.filename = filename
+        self.filename = edh_filename
         self.voltage_compress = voltage_compress
         self.n_remove = n_remove
         self.downsample = downsample
@@ -187,8 +212,15 @@ class EDHReader(AbstractFileReader):
 
 class OPTReader(AbstractFileReader):
     """
-    A class for reading and processing .opt files, including parsing
-    metadata and extracting current and voltage data.
+    Reader for `.opt` data files with corresponding XML or `_volt.opt` metadata.
+
+    This class reads current data from `.opt` files and attempts to extract or reconstruct
+    corresponding voltage data using associated `.xml` or `_volt.opt` files found in the same
+    directory. It handles metadata extraction, signal preprocessing, voltage alignment, and
+    segment compression based on voltage steps.
+
+    Supported XML structures include both standard `HWtiming_cap_step` formats and timestamp-based
+    custom formats.
     """
 
     ext = ".opt"
@@ -197,6 +229,20 @@ class OPTReader(AbstractFileReader):
 
     @json_logger.log
     def __init__(self, opt_filename: str, voltage_compress=False, n_remove=0, downsample=1, prefilter=None):
+        """
+        Initialize the OPTReader instance and load corresponding files.
+
+        :param opt_filename: Path to the `.opt` header file.
+        :type opt_filename: str
+        :param voltage_compress: If True, splits signal into segments based on voltage steps.
+        :type voltage_compress: bool
+        :param n_remove: Number of samples to remove from the beginning of each voltage step.
+        :type n_remove: int
+        :param downsample: Downsampling factor to reduce data size.
+        :type downsample: int
+        :param prefilter: Callable to apply preprocessing to the current signal.
+        :type prefilter: callable or None
+        """
         super().__init__()
         self.opt_filename = opt_filename
         self.voltage_compress = voltage_compress
@@ -355,11 +401,11 @@ class OPTReader(AbstractFileReader):
 
         total_samples = int(round(time_points[-1] * sampling_frequency))
         voltage_waveform = np.ones(len(current), dtype=np.float32)
-        initial_voltage=float(root.find(".//inital_UI_voltage").get("volt"))
-        voltage_waveform*=initial_voltage
+        initial_voltage = float(root.find(".//inital_UI_voltage").get("volt"))
+        voltage_waveform *= initial_voltage
 
         # Find peaks for each segment
-        starts,ends,volt_values=[],[],[]
+        starts, ends, volt_values = [], [], []
 
         for i in range(len(voltage_data)-1):
             starts.append(voltage_data[i][0])
@@ -369,9 +415,9 @@ class OPTReader(AbstractFileReader):
         volt_values.append(voltage_data[-1][1])
         ends.append(len(current))
 
-        prev_voltage=voltage_waveform[0]
-        global_alignment=None
-        window_shift_duration=0.08 #80ms
+        prev_voltage = voltage_waveform[0]
+        global_alignment = None
+        window_shift_duration = 0.08 #80ms
         for start_time,end_time,volt_value in zip(starts,ends,volt_values):
             volt_difference=volt_value-prev_voltage
             # approximate start_sample
