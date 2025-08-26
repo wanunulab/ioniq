@@ -822,7 +822,6 @@ class IVCurveAnalyzer(Parser):
 
     def _simple_stats(self, current):
         return np.mean(current), np.tsd(current)
-
     def _extra_stats(self, current):
         """
         divide segment into n subsegments (default 10 or 0.1s, whichever is longer),
@@ -837,17 +836,14 @@ class IVCurveAnalyzer(Parser):
         n_subsegments = int(max(10, subsegment_duration))
 
 
-
 class AutoSquareParser(Parser):
     """
     Class for building a straightforward pipeline of data analysis
     to make it reusable with customized parameters
     """
     required_parent_attributes = ["current", "eff_sampling_freq", "voltage"]
-    
 
     def __init__(self, threshold_baseline=0.7, expected_conductance=1.9,conductance_tolerance=1.2, wrap_padding:int=50, rules=[]):
-        
         
         super().__init__()
         # self.voltage_range = voltage_range
@@ -873,8 +869,6 @@ class AutoSquareParser(Parser):
         # if expected_baseline/1.2<I0guess <expected_baseline*1.2 :
         #     return []
 
-        
-
         # lambda parser with dynamic rules
         lambda_parser = lambda_event_parser(
             threshold=Ithresh,
@@ -887,9 +881,7 @@ class AutoSquareParser(Parser):
             return []
         ignored=[]
         for i in range(len(events)):
-            
-            
-            
+
             
             """
             objective: find a baseline region to calculate the event-specific baseline
@@ -914,7 +906,6 @@ class AutoSquareParser(Parser):
             # print(i, bstart,bend)
             baseline = current_positive[bstart:bend]
 
-            
             #     return []
             if baseline.shape[0] > 0: 
                 events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
@@ -961,11 +952,8 @@ class AutoSquareParser(Parser):
             assert hasattr(event,"unique_features"), f"Faulty event situation at {event.start},{event.end}"
             assert ("baseline" in event.unique_features) and "wrap" in event.unique_features,f"Event with no baseline or wrapping slipped through the parser at {event.start},{event.end}"
             #events[i].unique_features = {"baseline": np.median(baseline, axis=-1)}
-        
-
         # Adjust the events by removing transitions
 
-        
         for event in events:
             # event.duration = (event.end - event.start) / eff_sampling_freq
 
@@ -977,12 +965,7 @@ class AutoSquareParser(Parser):
             # event.unique_features["current"] = current[event.start:event.end]
             # event.unique_features["start"] = event.start
             # event.unique_features["end"]=event.end
-
-
             results.append((event.start, event.end, event.unique_features))
 
         return results
-    
-
-
 
