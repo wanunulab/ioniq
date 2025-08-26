@@ -167,5 +167,5 @@ cython_debug/
 
 .DS_Store
 notebooks/.DS_Store
-src/ioniq/cparsers.c
-src/ioniq/cparsers.c
+src/ionique/cparsers.c
+src/ionique/cparsers.c
