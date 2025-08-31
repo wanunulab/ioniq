@@ -14,10 +14,10 @@ import os
 import glob
 import pyabf
 import numpy as np
-from ioniq.utils import si_eval
-from ioniq.utils import split_voltage_steps
-from ioniq.setup_log import json_logger
-from ioniq.datatypes import SessionFileManager
+from ionique.utils import si_eval
+from ionique.utils import split_voltage_steps
+from ionique.setup_log import json_logger
+from ionique.datatypes import SessionFileManager
 import uuid
 from scipy.signal import find_peaks
 
