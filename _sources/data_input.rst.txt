@@ -3,7 +3,7 @@ Data Input
 
 **File Readers**
 
-Ioniq supports multiple file formats commonly utilized in nanopore experiments:
+Ionique supports multiple file formats commonly utilized in nanopore experiments:
 
 - **.edh** – Element Data Header files containing metadata and pointers to raw data
 - **.opt** – Orbit Potential files with recorded current and voltage data
