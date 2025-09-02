@@ -1,9 +1,9 @@
-.. ioniq documentation master file, created by
+.. ionique documentation master file, created by
    sphinx-quickstart on Tue Feb 11 10:00:50 2025.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Ioniq: A Nanopore Signal Analysis Framework
+Ionique: A Nanopore Signal Analysis Framework
 ==========================================
 
 **Authors:**
@@ -18,7 +18,7 @@ Feb 11, 2025
 Overview
 --------
 
-Ioniq is a Python module for processing and analyzing nanopore signal data. It provides tools for reading, filtering, segmenting, and analyzing nanopore experimental data. The framework supports structured workflows for signal processing and quality control, allowing researchers to extract relevant information from raw current and voltage traces.
+Ionique is a Python module for processing and analyzing nanopore signal data. It provides tools for reading, filtering, segmenting, and analyzing nanopore experimental data. The framework supports structured workflows for signal processing and quality control, allowing researchers to extract relevant information from raw current and voltage traces.
 
 Features
 --------
@@ -44,13 +44,13 @@ Features
 Installation (Development)
 --------------------------
 
-To install the development version of Ioniq, clone the repository and install it in editable mode:
+To install the development version of Ionique, clone the repository and install it in editable mode:
 
 .. code-block:: bash
 
-    git clone https://github.com/wanunulab/ioniq.git
-    cd ioniq
-    pip install ioniq
+    git clone https://github.com/wanunulab/ionique.git
+    cd ionique
+    pip install ionique
 
 **Requirements:**
 - Python > 3.10

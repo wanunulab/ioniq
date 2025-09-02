@@ -1,4 +1,4 @@
- Ioniq
+ Ionique
 =====
 
 `Click here for an introduction to nanopore sequencing and signal analysis <https://en.wikipedia.org/wiki/Nanopore_sequencing>`_
