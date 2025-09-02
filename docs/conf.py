@@ -6,9 +6,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'ioniq'
+project = 'ionique'
 copyright = '2025, Ali Fallahi, Dinara Boyko, Wanunu Lab'
-author = 'Ali Fallahi'
+author = 'Ali Fallahi, Dinara Boyko'
 release = '0.1.0'
 
 # -- General configuration ---------------------------------------------------

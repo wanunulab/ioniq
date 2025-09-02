@@ -1,13 +1,13 @@
-# Install Ioniq
+# Install Ionique
 
-This guide walks you through the steps to download, set up, and install the Ioniq package using a virtual environment.
+This guide walks you through the steps to download, set up, and install the Ionique package using a virtual environment.
 
 ---
 
-## 1. Download the Ioniq Repository
+## 1. Download the Ionique Repository
 
 - Open the WanunuLab GitHub repository:  
-  https://github.com/wanunulab/ioniq
+  https://github.com/wanunulab/ionique
 
 - Click the green **Code** button and choose **Download ZIP**.
 
@@ -17,14 +17,14 @@ This guide walks you through the steps to download, set up, and install the Ioni
 
 ---
 
-## 2. Open the Ioniq Folder in VS Code
+## 2. Open the Ionique Folder in VS Code
 
 - Launch the **VS Code** application.
-- Click **File > Open...** and select the unzipped `ioniq` folder.
+- Click **File > Open...** and select the unzipped `ionique` folder.
 
 ![](../images/open_repo_in_vs.png)
 
-Now your working directory in VS Code is set to the `ioniq` folder.
+Now your working directory in VS Code is set to the `ionique` folder.
 
 ---
 
@@ -48,7 +48,7 @@ Use the following command:
 ls
 ```
 
-You should see the contents of the `ioniq` folder.
+You should see the contents of the `ionique` folder.
 
 ![](../images/list_dir.png)
 ### Step 3: Create and Activate the Environment
@@ -56,7 +56,7 @@ You should see the contents of the `ioniq` folder.
 Run the command:
 
 ```bash
-python -m venv ioniq_env
+python -m venv ionique_env
 ```
 > **Note:** On some systems (especially Linux/macOS), you may need to use `python3` and `pip3` instead of `python` and `pip`.
 
@@ -64,21 +64,21 @@ Then activate it:
 
 - **Linux / macOS:**
   ```bash
-  source ioniq_env/bin/activate
+  source ionique_env/bin/activate
   ```
 
 - **Windows:**
   ```bat
-  ioniq_env\Scripts\activate
+  ionique_env\Scripts\activate
   ```
 
-If activated successfully, you’ll see `(ioniq_env)` appear before your username in the terminal.
+If activated successfully, you’ll see `(ionique_env)` appear before your username in the terminal.
 ![](../images/active_env.png)
 
 
 ---
 
-## 4. Install the Ioniq Package
+## 4. Install the Ionique Package
 
 Run the command:
 
@@ -88,9 +88,9 @@ pip install .
 
 Wait a few minutes while dependencies install.
 
-![](../images/final_ioniq_installes.png)
+![](../images/final_ionique_installes.png)
 
-> If you see a similar message, congratulations — you've successfully installed the Ioniq package!
+> If you see a similar message, congratulations — you've successfully installed the Ionique package!
 
 ---
 

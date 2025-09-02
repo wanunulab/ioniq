@@ -1,53 +1,53 @@
-ioniq
+ionique
 =============
 
 Modules
 ----------
 
-ioniq.core
+ionique.core
 -----------------
 
-.. automodule:: ioniq.core
+.. automodule:: ionique.core
    :members:
    :undoc-members:
    :show-inheritance:
 
-ioniq.cparsers
+ionique.cparsers
 ---------------------
 
-.. automodule:: ioniq.cparsers
+.. automodule:: ionique.cparsers
    :members:
    :undoc-members:
    :show-inheritance:
 
-ioniq.datatypes
+ionique.datatypes
 ----------------------
 
-.. automodule:: ioniq.datatypes
+.. automodule:: ionique.datatypes
    :members:
    :undoc-members:
    :show-inheritance:
 
-ioniq.io
+ionique.io
 ---------------
 
-.. automodule:: ioniq.io
+.. automodule:: ionique.io
    :members:
    :undoc-members:
    :show-inheritance:
 
-ioniq.parsers
+ionique.parsers
 --------------------
 
-.. automodule:: ioniq.parsers
+.. automodule:: ionique.parsers
    :members:
    :undoc-members:
    :show-inheritance:
 
-ioniq.utils
+ionique.utils
 ------------------
 
-.. automodule:: ioniq.utils
+.. automodule:: ionique.utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -55,7 +55,7 @@ ioniq.utils
 Module contents
 ---------------
 
-.. automodule:: ioniq
+.. automodule:: ionique
    :members:
    :undoc-members:
    :show-inheritance:

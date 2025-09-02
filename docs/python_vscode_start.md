@@ -6,7 +6,7 @@ This guide is designed for users who do not have Python or Visual Studio Code in
 
 ---
 
-First, you need a platform (Integrated Development Environment) to run Ioniq. **Visual Studio Code (VS Code)** is a convenient IDE to start with.
+First, you need a platform (Integrated Development Environment) to run Ionique . **Visual Studio Code (VS Code)** is a convenient IDE to start with.
 
 ---
 
