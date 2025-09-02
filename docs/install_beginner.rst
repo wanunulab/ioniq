@@ -1,7 +1,7 @@
 Installation for beginners
 ===========================
 
-Welcome to Ioniq!
+Welcome to Ionique!
 ------------------
 
 This tutorial is designed for non-coding users. If you have used Python and GitHub before, please proceed with the ``README.md`` instructions.
@@ -44,7 +44,7 @@ Step 2: GitHub
 
 First, you need to create an account by following the instructions on `GitHub <https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github>`_.
 
-Now, open the repository link: `Ioniq Repository <https://github.com/wanunulab/ioniq>`_, click on the green **"Code"** button, and download the ZIP file. Unzip it.
+Now, open the repository link: `Ionique Repository <https://github.com/wanunulab/ionique>`_, click on the green **"Code"** button, and download the ZIP file. Unzip it.
 
 Move the folder to the desired location on your computer.
 
@@ -69,7 +69,7 @@ The most important command for this tutorial is **cd**, which stands for "change
 
    cd directory_name
 
-Find the **ioniq** folder and move inside it.
+Find the **ionique** folder and move inside it.
 
 Step 4: Virtual Environment
 ---------------------------
@@ -84,16 +84,16 @@ Run the following command:
 
 .. code-block:: sh
 
-   python -m venv ioniq_env
+   python -m venv ionique_env
 
 Then, activate it:
 
 .. code-block:: sh
 
-   source ioniq_env/bin/activate   # Linux/MacOS
-   ioniq_env\Scripts\activate.bat  # Windows
+   source ionique_env/bin/activate   # Linux/MacOS
+   ionique_env\Scripts\activate.bat  # Windows
 
-Now, install the Ioniq requirements:
+Now, install the Ionique requirements:
 
 .. code-block:: sh
 
@@ -135,6 +135,6 @@ Then, type:
 
 to deactivate the virtual environment.
 
-**Note:** Starting from **Step 5**, the procedure will be identical each time you want to run **Ioniq**.
+**Note:** Starting from **Step 5**, the procedure will be identical each time you want to run **Ionique**.
 
-Happy using Ioniq!
+Happy using Ionique!
