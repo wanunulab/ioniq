@@ -25,7 +25,7 @@ API Reference
    :maxdepth: 2
    :caption: API Reference
 
-   ioniq.io
-   ioniq.parsers
-   ioniq.analysis
-   ioniq.utils
+   ionique.io
+   ionique.parsers
+   ionique.analysis
+   ionique.utils

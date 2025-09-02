@@ -26,7 +26,7 @@ structure and extract both metadata and raw signal data.
 
 .. code-block:: python
 
-   from ioniq.io import EDHReader
+   from ionique.io import EDHReader
 
    reader = EDHReader("path/to/file.edh", downsample=5)
    metadata, current, voltage = reader
