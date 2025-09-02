@@ -3,6 +3,7 @@ name: Deploy Sphinx Docs to GitHub Pages
 on:
   push:
     branches: [ feature/dina ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,6 +25,9 @@ jobs:
       - name: Build docs
         working-directory: docs
         run: make html
+
+      - name: Add .nojekyll
+        run: touch docs/_build/html/.nojekyll
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
