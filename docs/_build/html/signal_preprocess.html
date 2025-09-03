@@ -45,13 +45,23 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">Nanopore Signal Analysis Framework</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Signal Preprocessing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Signal Preprocessing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#filtering-with-filter-class">Filtering with <cite>Filter</cite> class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#trimming-with-trimmer-class">Trimming with <cite>Trimmer</cite> class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="signal_analysis.html">Signal Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="data_input.html">Data Input</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="modules.html#api-reference">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="install_beginner.html">Installation for beginners</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ionique_starter.html">Install Ionique</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python_vscode_start.html">Guide for VSCode and Python Installation</a></li>
 </ul>
 
         </div>
@@ -81,16 +91,63 @@
              
   <section id="signal-preprocessing">
 <h1>Signal Preprocessing<a class="headerlink" href="#signal-preprocessing" title="Link to this heading"></a></h1>
-<p><strong>Segmentation System</strong></p>
-<p><strong>Signal Manipulation</strong></p>
-<p>Pre-processing prepares raw signals for analysis by:</p>
+<p>Signal preprocessing is an essential step before downstream analysis of nanopore signals.
+It typically involves filtering, trimming, downsampling, or compressing signal segments
+to reduce noise and improve performance.</p>
+<p>This page describes the following functionalities of Ionique:</p>
 <ul class="simple">
-<li><p>Filtering to reduce high-frequency noise (e.g., butter, bandstop filter)</p></li>
-<li><p>Downsampling to improve computational performance</p></li>
-<li><p>Compressing voltage data for memory efficiency</p></li>
-<li><p>Trimming</p></li>
+<li><p>Filtering: denoise signals.</p></li>
+<li><p>Trimming: remove edge artifacts from signal segments.</p></li>
 </ul>
+<section id="filtering-with-filter-class">
+<h2>Filtering with <cite>Filter</cite> class<a class="headerlink" href="#filtering-with-filter-class" title="Link to this heading"></a></h2>
+<p>The <cite>Filter</cite> class allows users to apply different types of filters on current traces:</p>
+<p><strong>Supported filter types:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">lowpass</span></code>: Passes low frequencies below a cutoff.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">highpass</span></code>: Passes high frequencies above a cutoff.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bandpass</span></code>: Passes a frequency band between low and high cutoff.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bandstop</span></code>: Removes a frequency band between low and high cutoff.</p></li>
+</ul>
+<p><strong>Supported filter methods:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">butter</span></code>: Butterworth filter (default) – smooth and flat frequency response.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bessel</span></code>: Bessel filter – preserves waveform shape and group delay.</p></li>
+</ul>
+<p>Filtering is applied using <cite>scipy.signal.sosfiltfilt</cite> (zero-phase, bidirectional) or
+<cite>scipy.signal.sosfilt</cite> depending on <cite>bidirectional=True/False</cite>.</p>
+<p><strong>Usage Example:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">filt</span> <span class="o">=</span> <span class="n">Filter</span><span class="p">(</span>
+    <span class="n">cutoff_frequency</span><span class="o">=</span><span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span>
+    <span class="n">filter_type</span><span class="o">=</span><span class="s2">&quot;bandpass&quot;</span><span class="p">,</span>
+    <span class="n">filter_method</span><span class="o">=</span><span class="s2">&quot;butter&quot;</span><span class="p">,</span>
+    <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">sampling_frequency</span><span class="o">=</span><span class="mi">10000</span>
+<span class="p">)</span>
+<span class="n">filt</span><span class="p">(</span><span class="n">current_trace</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="trimming-with-trimmer-class">
+<h2>Trimming with <cite>Trimmer</cite> class<a class="headerlink" href="#trimming-with-trimmer-class" title="Link to this heading"></a></h2>
+<p>The <cite>Trimmer</cite> class removes a fixed number of samples from the start of each segment
+at a given hierarchical rank (e.g., “vstep”). This is useful for excluding artifacts</p>
+<blockquote>
+<div><p>in step protocols.</p>
+</div></blockquote>
+<p><strong>Usage Example:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trimmer</span> <span class="o">=</span> <span class="n">Trimmer</span><span class="p">(</span><span class="n">samples_to_remove</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+<span class="n">trimmer</span><span class="p">(</span><span class="n">trace_file</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>Both <cite>Filter</cite> and <cite>Trimmer</cite> are designed to be composable tools for preprocessing current traces before
+event detection and feature extraction. You can chain them together in the analysis workflows.</p>
 <p>These operations are performed using tools in <code class="docutils literal notranslate"><span class="pre">utils.py</span></code> and parser modules</p>
+</section>
 </section>
 
 

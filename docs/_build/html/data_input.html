@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Installation for beginners" href="install_beginner.html" />
+    <link rel="next" title="API Reference" href="api_reference.html" />
     <link rel="prev" title="Signal Analysis" href="signal_analysis.html" /> 
 </head>
 
@@ -50,8 +50,13 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Data Input</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="modules.html#api-reference">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="install_beginner.html">Installation for beginners</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ionique_starter.html">Install Ionique</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python_vscode_start.html">Guide for VSCode and Python Installation</a></li>
 </ul>
 
         </div>
@@ -101,7 +106,7 @@ structure and extract both metadata and raw signal data.</p>
 <li><p>Apply optional pre-processing (e.g., downsampling, filtering, trimming)</p></li>
 </ol>
 <p><strong>Example</strong></p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ioniq.io</span> <span class="kn">import</span> <span class="n">EDHReader</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ionique.io</span> <span class="kn">import</span> <span class="n">EDHReader</span>
 
 <span class="n">reader</span> <span class="o">=</span> <span class="n">EDHReader</span><span class="p">(</span><span class="s2">&quot;path/to/file.edh&quot;</span><span class="p">,</span> <span class="n">downsample</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 <span class="n">metadata</span><span class="p">,</span> <span class="n">current</span><span class="p">,</span> <span class="n">voltage</span> <span class="o">=</span> <span class="n">reader</span>
@@ -114,7 +119,7 @@ structure and extract both metadata and raw signal data.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="signal_analysis.html" class="btn btn-neutral float-left" title="Signal Analysis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="install_beginner.html" class="btn btn-neutral float-right" title="Installation for beginners" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="api_reference.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

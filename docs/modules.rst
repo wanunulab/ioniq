@@ -18,14 +18,4 @@ Nanopore Signal Analysis Framework
    signal_analysis.rst
    data_input.rst
 
-API Reference
--------------
 
-.. toctree::
-   :maxdepth: 2
-   :caption: API Reference
-
-   ionique.io
-   ionique.parsers
-   ionique.analysis
-   ionique.utils

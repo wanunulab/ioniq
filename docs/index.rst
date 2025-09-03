@@ -61,14 +61,24 @@ Future Development
 
 - **Additional analysis modules** for extended event detection and pattern recognition.
 - **Integration with Jupyter Notebooks** for interactive visualization.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    modules
 
-   install_beginner.rst
    signal_process
+   api_reference
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Guides
+
+   install_beginner.rst
+   ionique_starter.md
+   python_vscode_start.md
+
 
 Indices and tables
 ==================
