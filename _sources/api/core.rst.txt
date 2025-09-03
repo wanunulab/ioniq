@@ -1,7 +1,7 @@
-core module
+ionique.core
 ===========
 
-.. automodule:: core
+.. automodule:: ionique.core
    :members:
    :undoc-members:
    :show-inheritance:

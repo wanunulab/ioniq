@@ -1,7 +1,7 @@
-parsers module
+ionique.parsers
 ==============
 
-.. automodule:: parsers
+.. automodule:: ionique.parsers
    :members:
    :undoc-members:
    :show-inheritance:

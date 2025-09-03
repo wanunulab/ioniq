@@ -1,7 +1,7 @@
-cparsers module
+ionique.cparsers
 ===============
 
-.. automodule:: cparsers
+.. automodule:: ionique.cparsers
    :members:
    :undoc-members:
    :show-inheritance:

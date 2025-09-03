@@ -1,7 +1,7 @@
-datatypes module
+ionique.datatypes
 ================
 
-.. automodule:: datatypes
+.. automodule:: ionique.datatypes
    :members:
    :undoc-members:
    :show-inheritance:

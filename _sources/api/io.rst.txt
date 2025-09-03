@@ -1,7 +1,7 @@
-io module
-=========
+ionique.io
+==========
 
-.. automodule:: io
+.. automodule:: ionique.io
    :members:
    :undoc-members:
    :show-inheritance:

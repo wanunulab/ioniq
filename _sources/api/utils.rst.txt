@@ -1,7 +1,7 @@
-utils module
+ionique.utils
 ============
 
-.. automodule:: utils
+.. automodule:: ionique.utils
    :members:
    :undoc-members:
    :show-inheritance:
