@@ -90,12 +90,53 @@
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="api/io.html">ionique.io</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/core.html">ionique.core</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/parsers.html">ionique.parsers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/utils.html">ionique.utils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/datatypes.html">ionique.datatypes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/cparsers.html">ionique.cparsers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/io.html">ionique.io</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#ionique.io.AbstractFileReader"><code class="docutils literal notranslate"><span class="pre">AbstractFileReader</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#ionique.io.EDHReader"><code class="docutils literal notranslate"><span class="pre">EDHReader</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#ionique.io.OPTReader"><code class="docutils literal notranslate"><span class="pre">OPTReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/core.html">ionique.core</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/core.html#ionique.core.AbstractSegmentTree"><code class="docutils literal notranslate"><span class="pre">AbstractSegmentTree</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/core.html#ionique.core.MetaSegment"><code class="docutils literal notranslate"><span class="pre">MetaSegment</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/core.html#ionique.core.Segment"><code class="docutils literal notranslate"><span class="pre">Segment</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/core.html#ionique.core.ignored"><code class="docutils literal notranslate"><span class="pre">ignored()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/parsers.html">ionique.parsers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.AutoSquareParser"><code class="docutils literal notranslate"><span class="pre">AutoSquareParser</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.FilterDerivativeSegmenter"><code class="docutils literal notranslate"><span class="pre">FilterDerivativeSegmenter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.IVCurveAnalyzer"><code class="docutils literal notranslate"><span class="pre">IVCurveAnalyzer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.IVCurveParser"><code class="docutils literal notranslate"><span class="pre">IVCurveParser</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.MemoryParse"><code class="docutils literal notranslate"><span class="pre">MemoryParse</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.NoiseFilterParser"><code class="docutils literal notranslate"><span class="pre">NoiseFilterParser</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.Parser"><code class="docutils literal notranslate"><span class="pre">Parser</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.SpeedyStatSplit"><code class="docutils literal notranslate"><span class="pre">SpeedyStatSplit</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.SpikeParser"><code class="docutils literal notranslate"><span class="pre">SpikeParser</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.lambda_event_parser"><code class="docutils literal notranslate"><span class="pre">lambda_event_parser</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.pairwise"><code class="docutils literal notranslate"><span class="pre">pairwise()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/parsers.html#ionique.parsers.snakebase_parser"><code class="docutils literal notranslate"><span class="pre">snakebase_parser</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/utils.html">ionique.utils</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/utils.html#ionique.utils.Filter"><code class="docutils literal notranslate"><span class="pre">Filter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utils.html#ionique.utils.Singleton"><code class="docutils literal notranslate"><span class="pre">Singleton</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utils.html#ionique.utils.Trimmer"><code class="docutils literal notranslate"><span class="pre">Trimmer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utils.html#ionique.utils.extract_features"><code class="docutils literal notranslate"><span class="pre">extract_features()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utils.html#ionique.utils.si_eval"><code class="docutils literal notranslate"><span class="pre">si_eval()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utils.html#ionique.utils.split_voltage_steps"><code class="docutils literal notranslate"><span class="pre">split_voltage_steps()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/datatypes.html">ionique.datatypes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/datatypes.html#ionique.datatypes.SessionFileManager"><code class="docutils literal notranslate"><span class="pre">SessionFileManager</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/datatypes.html#ionique.datatypes.TraceFile"><code class="docutils literal notranslate"><span class="pre">TraceFile</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/cparsers.html">ionique.cparsers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/cparsers.html#ionique.cparsers.FastStatSplit"><code class="docutils literal notranslate"><span class="pre">FastStatSplit</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/cparsers.html#ionique.cparsers.pairwise"><code class="docutils literal notranslate"><span class="pre">pairwise()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </div>
 </section>

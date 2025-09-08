@@ -51,7 +51,19 @@
 <li class="toctree-l2"><a class="reference internal" href="parsers.html">ionique.parsers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.html">ionique.utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datatypes.html">ionique.datatypes</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">ionique.cparsers</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ionique.cparsers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ionique.cparsers.FastStatSplit"><code class="docutils literal notranslate"><span class="pre">FastStatSplit</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ionique.cparsers.FastStatSplit.__init__"><code class="docutils literal notranslate"><span class="pre">FastStatSplit.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ionique.cparsers.FastStatSplit.best_single_split"><code class="docutils literal notranslate"><span class="pre">FastStatSplit.best_single_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ionique.cparsers.FastStatSplit.min_gain"><code class="docutils literal notranslate"><span class="pre">FastStatSplit.min_gain</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ionique.cparsers.FastStatSplit.parse"><code class="docutils literal notranslate"><span class="pre">FastStatSplit.parse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ionique.cparsers.FastStatSplit.parse_meta"><code class="docutils literal notranslate"><span class="pre">FastStatSplit.parse_meta()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ionique.cparsers.FastStatSplit.score_samples"><code class="docutils literal notranslate"><span class="pre">FastStatSplit.score_samples()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#ionique.cparsers.pairwise"><code class="docutils literal notranslate"><span class="pre">pairwise()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -89,6 +101,63 @@
              
   <section id="ionique-cparsers">
 <h1>ionique.cparsers<a class="headerlink" href="#ionique-cparsers" title="Link to this heading"></a></h1>
+<p id="module-ionique.cparsers">This contains cython implementations of ionic current parsers which are in
+parsers.py. Currently the only parser is StatSplit, which is implemented
+as FastStatSplit.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="ionique.cparsers.FastStatSplit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ionique.cparsers.</span></span><span class="sig-name descname"><span class="pre">FastStatSplit</span></span><a class="headerlink" href="#ionique.cparsers.FastStatSplit" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A cython implementation of the segmenter written by Kevin Karplus. Sped up approximately 50-100x
+compared to the Python implementation depending on parameters.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ionique.cparsers.FastStatSplit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ionique.cparsers.FastStatSplit.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ionique.cparsers.FastStatSplit.best_single_split">
+<span class="sig-name descname"><span class="pre">best_single_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ionique.cparsers.FastStatSplit.best_single_split" title="Link to this definition"></a></dt>
+<dd><p>Wrapper for a single call to _best_single_split. It will find the
+single best split in a series of current, and return the index of
+that split. Returns a tuple of ( gain, index ) where gain is the
+gain in variance by splitting there, and index is the index at which
+the split should occur in the current array.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ionique.cparsers.FastStatSplit.min_gain">
+<span class="sig-name descname"><span class="pre">min_gain</span></span><a class="headerlink" href="#ionique.cparsers.FastStatSplit.min_gain" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ionique.cparsers.FastStatSplit.parse">
+<span class="sig-name descname"><span class="pre">parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ionique.cparsers.FastStatSplit.parse" title="Link to this definition"></a></dt>
+<dd><p>Wrapper function for the segmentation, which is implemented in cython.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ionique.cparsers.FastStatSplit.parse_meta">
+<span class="sig-name descname"><span class="pre">parse_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ionique.cparsers.FastStatSplit.parse_meta" title="Link to this definition"></a></dt>
+<dd><p>Wrapper function for the segmentation, which is implemented in cython. returns meta segments (no current array)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ionique.cparsers.FastStatSplit.score_samples">
+<span class="sig-name descname"><span class="pre">score_samples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ionique.cparsers.FastStatSplit.score_samples" title="Link to this definition"></a></dt>
+<dd><p>Return a series of lists scoring each sample. However, this isn’t just
+scoring each sample once. Every time a split is detected, it will return
+a new list with newly scored samples. In essence, it returns one list
+per scan of the current using the recursive method.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ionique.cparsers.pairwise">
+<span class="sig-prename descclassname"><span class="pre">ionique.cparsers.</span></span><span class="sig-name descname"><span class="pre">pairwise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ionique.cparsers.pairwise" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
 
 
