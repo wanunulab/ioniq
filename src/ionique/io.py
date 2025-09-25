@@ -16,11 +16,11 @@ import pyabf
 import numpy as np
 from ionique.utils import si_eval
 from ionique.utils import split_voltage_steps
-from ionique.setup_log import json_logger
 from ionique.datatypes import SessionFileManager
 import uuid
 from scipy.signal import find_peaks
 
+# from ionique.setup_log import json_logger
 
 # try:
 #     import cupy
@@ -112,7 +112,7 @@ class EDHReader(AbstractFileReader):
     current_multiplier = 1e-9  # current is stored in nA in the datafile
     voltage_multiplier = 1e-3  # voltage is stored in mV in the datafile
 
-    @json_logger.log
+    # @json_logger.log
     def __init__(self, edh_filename, voltage_compress=False, n_remove=0, downsample=1, prefilter=None):
         """
         Initialize the EDHReader and load signal data from associated files.
@@ -227,7 +227,7 @@ class OPTReader(AbstractFileReader):
     accepted_keywords = ["voltage_compress", "n_remove", "downsample", "prefilter"]
     current_multiplier = 1e9  # Convert current to nA
 
-    @json_logger.log
+    #@json_logger.log
     def __init__(self, opt_filename: str, voltage_compress=False, n_remove=0, downsample=1, prefilter=None):
         """
         Initialize the OPTReader instance and load corresponding files.
