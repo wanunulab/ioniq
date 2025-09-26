@@ -10,4 +10,4 @@ Temporarily while the package is under development, clone the repo with git or d
 ```
 pip install -e .
 ```
-See [user guide](userguide.md) for more information or visit ionique's [official documentation site](https://wanunulab.github.io/ionique/)
+See [user guide](userguide.md) for more information or visit ionique's [official documentation site](https://wanunulab.github.io/ionique/).
