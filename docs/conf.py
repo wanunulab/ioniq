@@ -6,10 +6,13 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+
 project = 'ionique'
 copyright = '2025, Ali Fallahi, Dinara Boyko, Wanunu Lab'
 author = 'Ali Fallahi, Dinara Boyko'
-release = '0.1.0'
+import ionique
+release = ionique.__version__
+version = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
