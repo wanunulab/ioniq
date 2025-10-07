@@ -31,6 +31,7 @@ html_sidebars = {
         'sourcelink.html',
         'searchbox.html',
         'versions.html',
+        'versioning.html',
     ],
 }
 
