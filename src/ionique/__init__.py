@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 import ionique.core as core
 import ionique.datatypes as datatypes
 import ionique.io as io
