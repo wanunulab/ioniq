@@ -20,9 +20,10 @@ version = release
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'myst_parser', 'sphinx_multiversion']
 
-smv_branch_whitelist = r'^(feature/dina)$'
+
 smv_tag_whitelist = r'^v\d+\.\d+(\.\d+)?$'
-smv_remote_whitelist = r'^origin$'
+smv_branch_whitelist = r'^(feature/dina)$'
+smv_remote_whitelist = r'^$'
 
 html_sidebars = {
     '**': [
