@@ -26,15 +26,8 @@ smv_branch_whitelist = r'^(feature/dina)$'
 smv_remote_whitelist = r'^$'
 
 html_sidebars = {
-    '**': [
-        'globaltoc.html',
-        'sourcelink.html',
-        'searchbox.html',
-        'versions.html',
-        'versioning.html',
-    ],
+   '**': ['sidebar-nav-bs.html', 'versioning.html'],
 }
-
 
 source_suffix = {
     '.rst': 'restructuredtext',
@@ -48,7 +41,6 @@ autosummary_generate = True
 autodoc_default_options = {
     "special-members": "__init__"
 }
-
 
 
 # -- Options for HTML output -------------------------------------------------
