@@ -18,7 +18,22 @@ version = release
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'myst_parser']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'myst_parser', 'sphinx_multiversion']
+
+smv_branch_whitelist = r'^(feature/dina)$'
+smv_tag_whitelist = r'^v\d+\.\d+(\.\d+)?$'
+smv_remote_whitelist = r'^origin$'
+
+html_sidebars = {
+    '**': [
+        'globaltoc.html',
+        'sourcelink.html',
+        'searchbox.html',
+        'versions.html',
+    ],
+}
+
+
 source_suffix = {
     '.rst': 'restructuredtext',
     '.md': 'markdown',
