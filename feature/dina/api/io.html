@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ionique.io &mdash; ionique 0.3.2.dev3+ge4560ac17 documentation</title>
+  <title>ionique.io &mdash; ionique 0.3.2.dev12+g2d4485f09 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=29d5e579"></script>
+      <script src="../_static/documentation_options.js?v=94647e5f"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -74,8 +74,6 @@
 <li class="toctree-l4"><a class="reference internal" href="#ionique.io.OPTReader.process_custom_xml"><code class="docutils literal notranslate"><span class="pre">OPTReader.process_custom_xml()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#ionique.io.load_files_GUI"><code class="docutils literal notranslate"><span class="pre">load_files_GUI()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ionique.io.select_files_GUI"><code class="docutils literal notranslate"><span class="pre">select_files_GUI()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="core.html">ionique.core</a></li>
@@ -293,36 +291,6 @@ The search for the peaks happens in the window of the timestamp 0.02 seconds.</p
 with the current, and detect peaks in the current signal every time the voltage changes.</p>
 </dd></dl>
 
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ionique.io.load_files_GUI">
-<span class="sig-prename descclassname"><span class="pre">ionique.io.</span></span><span class="sig-name descname"><span class="pre">load_files_GUI</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ionique.io.load_files_GUI" title="Link to this definition"></a></dt>
-<dd><dl class="simple">
-<dt>Create a form with:</dt><dd><ul class="simple">
-<li><p>‘Compress voltage (only uncheck if voltage is not stepwise, e.g., triangle wave)’ : checkbox</p></li>
-<li><p>‘Apply Filter?’ : checkbox</p></li>
-<li><p>If ‘Apply Filter?’ checked: dynamic form from the Filter dataclass (types, options, limits).</p></li>
-</ul>
-</dd>
-<dt>Returns (frame, get_values) where get_values() -&gt; dict with:</dt><dd><p>{‘compress_voltage’: bool, ‘apply_filter’: bool, ‘filter’: Filter|None}</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ionique.io.select_files_GUI">
-<span class="sig-prename descclassname"><span class="pre">ionique.io.</span></span><span class="sig-name descname"><span class="pre">select_files_GUI</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ionique.io.select_files_GUI" title="Link to this definition"></a></dt>
-<dd><p>Open a file dialog allowing multiple selection, but only for ONE file type at a time.
-Users can switch the dialog’s file-type dropdown, but the final selection must be
-homogeneous (all the same extension) and in the allowed list.</p>
-<section id="returns">
-<h2>Returns<a class="headerlink" href="#returns" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>tuple[str, …]</dt><dd><p>Absolute paths of the selected files (empty tuple if the user cancels).</p>
-</dd>
-</dl>
-</section>
 </dd></dl>
 
 </section>
